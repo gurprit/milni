@@ -1,5 +1,5 @@
 export type EventType='Celebration'|'Food'|'Tradition'|'Ceremony'|'Travel'|'Custom';
-export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType};
+export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType;location?:string};
 export type WeddingDay={id:string;label:string;date:string;events:WeddingEvent[]};
 export type Guest={id:string;name:string;group:string;status:'Going'|'Awaiting RSVP'|'Not going'};
 export type SongRequest={id:string;song:string;likes:number};
