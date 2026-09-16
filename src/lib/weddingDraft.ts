@@ -1,6 +1,9 @@
-export type WeddingDraft={partnerOne:string;partnerTwo:string;city:string;startDate:string;endDate:string;title:string;traditions:string[]};
+export type EventType='Celebration'|'Food'|'Tradition'|'Ceremony'|'Travel'|'Custom';
+export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType};
+export type WeddingDay={id:string;label:string;date:string;events:WeddingEvent[]};
+export type WeddingDraft={partnerOne:string;partnerTwo:string;city:string;startDate:string;endDate:string;title:string;traditions:string[];schedule?:WeddingDay[]};
 export const DRAFT_KEY='milni:wedding-draft';
-export const emptyDraft:WeddingDraft={partnerOne:'',partnerTwo:'',city:'',startDate:'',endDate:'',title:'',traditions:[]};
+export const emptyDraft:WeddingDraft={partnerOne:'',partnerTwo:'',city:'',startDate:'',endDate:'',title:'',traditions:[],schedule:undefined};
 export function readWeddingDraft():WeddingDraft{if(typeof window==='undefined')return emptyDraft;try{return{...emptyDraft,...JSON.parse(localStorage.getItem(DRAFT_KEY)||'{}')}}catch{return emptyDraft}}
 export function writeWeddingDraft(next:Partial<WeddingDraft>){if(typeof window==='undefined')return;localStorage.setItem(DRAFT_KEY,JSON.stringify({...readWeddingDraft(),...next}))}
 export function weddingSlug(draft:WeddingDraft){const names=[draft.partnerOne,draft.partnerTwo].filter(Boolean).join('-').toLowerCase().normalize('NFKD').replace(/[^a-z0-9-\s]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-');return names||'our-wedding'}
