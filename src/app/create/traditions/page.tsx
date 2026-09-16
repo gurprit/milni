@@ -23,7 +23,7 @@ export default function TraditionsPage(){
         </label>)}
       </div>
       <div className={styles.message}><strong>No cultural assumptions baked in.</strong><span>MILNI uses traditions as editable suggestions, not rules. Add, remove, rename or rewrite anything in the schedule.</span></div>
-      <footer><Link href="/create">← Wedding details</Link><button type="button">Build my schedule →</button></footer>
+      <footer><Link href="/create">← Wedding details</Link><Link href="/create/schedule">Build my schedule →</Link></footer>
     </section>
   </main>
 }
