@@ -1,0 +1,7 @@
+@use '../styles/tokens';
+
+* { box-sizing: border-box; }
+html { background: var(--milni-ivory); }
+html, body { margin: 0; padding: 0; }
+body { min-height: 100vh; font-family: Arial, Helvetica, sans-serif; background: var(--milni-ivory); color: var(--milni-text); -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; }

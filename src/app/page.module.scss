@@ -1,0 +1,23 @@
+@use '../styles/tokens';
+
+.page { min-height: 100vh; background: var(--milni-ivory); color: var(--milni-text); }
+.nav { height: 112px; padding: 0 clamp(24px, 5vw, 80px); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--milni-border); }
+.nav > a { color: var(--milni-green-950); text-decoration: none; border: 1px solid var(--milni-green-950); padding: 13px 20px; border-radius: var(--radius-sm); }
+.brand { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 10px; }
+.brand strong { font-family: Georgia, serif; letter-spacing: .25em; font-size: 29px; font-weight: 500; }
+.brand small { grid-column: 2; letter-spacing: .18em; font-size: 7px; }
+.lotus { color: var(--milni-gold); font-size: 26px; }
+.hero { min-height: calc(100vh - 112px); padding: clamp(50px, 8vw, 120px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); gap: 7vw; align-items: center; background: radial-gradient(circle at 80% 20%, rgba(215,167,95,.16), transparent 30%), var(--milni-ivory); }
+.eyebrow { letter-spacing: .26em; font-size: 12px; color: var(--milni-gold); }
+.copy h1 { font: 500 clamp(50px, 6.5vw, 96px)/.96 Georgia, serif; margin: 22px 0 28px; max-width: 900px; }
+.intro { font: 20px/1.65 Georgia, serif; max-width: 680px; color: var(--milni-text-muted); }
+.actions { display: flex; gap: 14px; margin-top: 38px; }
+.actions a { padding: 16px 24px; border-radius: var(--radius-sm); text-decoration: none; }
+.primary { background: var(--milni-green-950); color: white; }
+.secondary { border: 1px solid var(--milni-border); color: var(--milni-text); background: var(--milni-paper); }
+.card { background: var(--milni-green-950); color: white; padding: clamp(32px, 5vw, 64px); border-radius: var(--radius-lg); box-shadow: var(--milni-shadow); }
+.card > span { color: var(--milni-gold-soft); letter-spacing: .2em; font-size: 11px; }
+.card h2 { font: 400 clamp(30px, 3vw, 48px)/1.15 Georgia, serif; margin: 22px 0 34px; }
+.features { border-top: 1px solid rgba(255,255,255,.16); display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; padding-top: 18px; }
+.features p { border-bottom: 1px solid rgba(255,255,255,.1); padding: 12px 0; margin: 0; }
+@media (max-width: 760px) { .nav { height: 86px; } .nav > a { display: none; } .hero { min-height: auto; grid-template-columns: 1fr; padding: 52px 22px; } .copy h1 { font-size: 52px; } .intro { font-size: 17px; } .actions { flex-direction: column; } .actions a { text-align: center; } .features { grid-template-columns: 1fr; } }
