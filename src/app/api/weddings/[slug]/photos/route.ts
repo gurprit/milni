@@ -1,0 +1,17 @@
+import {NextRequest,NextResponse} from 'next/server';
+import {d1Execute,d1Query} from '../../../../../lib/d1';
+
+type PhotoRow={id:string;album_id:string|null;event_id:string|null;object_key:string;caption:string|null;uploaded_by_name:string|null;created_at:string};
+async function weddingId(slug:string){const rows=await d1Query<{id:string}>('SELECT id FROM weddings WHERE slug=? LIMIT 1',[slug]);return rows[0]?.id}
+
+export async function GET(_request:NextRequest,{params}:{params:Promise<{slug:string}>}){
+ try{const{slug}=await params;const id=await weddingId(slug);if(!id)return NextResponse.json({ok:true,photos:[]});const rows=await d1Query<PhotoRow>('SELECT id,album_id,event_id,object_key,caption,uploaded_by_name,created_at FROM photos WHERE wedding_id=? ORDER BY created_at DESC',[id]);return NextResponse.json({ok:true,photos:rows.map(row=>({id:row.id,albumId:row.album_id??'',eventId:row.event_id??undefined,url:`/api/media?key=${encodeURIComponent(row.object_key)}`,caption:row.caption??'',uploadedBy:row.uploaded_by_name??'Wedding guest',createdAt:row.created_at}))})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not load photos'},{status:500})}
+}
+
+export async function POST(request:NextRequest,{params}:{params:Promise<{slug:string}>}){
+ try{const{slug}=await params;const body=await request.json() as {id:string;albumId?:string;eventId?:string;objectKey:string;caption?:string;uploadedBy?:string};const id=await weddingId(slug);if(!id)return NextResponse.json({ok:false,error:'Wedding has not been synced yet'},{status:409});await d1Execute('INSERT INTO photos (id,wedding_id,album_id,event_id,object_key,caption,uploaded_by_name) VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET album_id=excluded.album_id,event_id=excluded.event_id,caption=excluded.caption,uploaded_by_name=excluded.uploaded_by_name',[body.id,id,body.albumId||null,body.eventId||null,body.objectKey,body.caption??'',body.uploadedBy??'Wedding guest']);return NextResponse.json({ok:true})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not save photo'},{status:500})}
+}
+
+export async function DELETE(request:NextRequest,{params}:{params:Promise<{slug:string}>}){
+ try{const{slug}=await params;const{id}=await request.json() as {id:string};const wid=await weddingId(slug);if(wid)await d1Execute('DELETE FROM photos WHERE id=? AND wedding_id=?',[id,wid]);return NextResponse.json({ok:true})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not remove photo'},{status:500})}
+}
