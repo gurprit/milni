@@ -17,7 +17,7 @@ export default function TravelPage(){
  const params=useParams();
  useEffect(()=>{setDraft(readWeddingDraft());setOrganiser(localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)},[]);
  const setMode=(next:boolean)=>{setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
- const save=(patch:Partial<WeddingDraft>)=>{const next={...draft,...patch};setDraft(next);writeWeddingDraft(patch)};
+ const save=(patch:Partial<WeddingDraft>)=>{setDraft(current=>({...current,...patch}));writeWeddingDraft(patch)};
  const slug=String(params.slug||'our-wedding');
  const base=`/wedding/${slug}`;
  const names=[draft.partnerOne,draft.partnerTwo].filter(Boolean).join(' & ')||'Our Wedding';
