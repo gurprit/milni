@@ -15,6 +15,7 @@
     "drizzle-orm": "latest",
     "lucide-react": "latest",
     "next": "16.3.1",
+    "qrcode": "latest",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "latest",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "latest",
+    "@types/qrcode": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "drizzle-kit": "latest",
