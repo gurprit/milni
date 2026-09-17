@@ -17,7 +17,7 @@ function loadGoogleMaps(){
   const existing=document.querySelector<HTMLScriptElement>('script[data-milni-google-maps]');
   if(existing){existing.addEventListener('load',()=>resolve());existing.addEventListener('error',()=>reject(new Error('Google Maps failed to load')));return}
   const script=document.createElement('script');
-  script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&v=weekly`;
+  script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&v=weekly&loading=async`;
   script.async=true;script.defer=true;script.dataset.milniGoogleMaps='true';
   script.onload=()=>resolve();script.onerror=()=>reject(new Error('Google Maps failed to load'));
   document.head.appendChild(script);
@@ -28,24 +28,29 @@ function loadGoogleMaps(){
 export function GoogleLocationInput({value,placeholder,onChange,onSelect}:{value:string;placeholder?:string;onChange:(value:string)=>void;onSelect:(location:LocationInfo)=>void}){
  const inputRef=useRef<HTMLInputElement>(null);
  const autocompleteRef=useRef<any>(null);
+ const onChangeRef=useRef(onChange);
+ const onSelectRef=useRef(onSelect);
  const [available,setAvailable]=useState(true);
+ onChangeRef.current=onChange;
+ onSelectRef.current=onSelect;
  useEffect(()=>{
   let active=true;
+  let listener:any;
   loadGoogleMaps().then(()=>{
    if(!active||!inputRef.current||autocompleteRef.current)return;
    const autocomplete=new window.google.maps.places.Autocomplete(inputRef.current,{fields:['place_id','name','formatted_address','geometry'],types:['geocode','establishment']});
    autocompleteRef.current=autocomplete;
-   autocomplete.addListener('place_changed',()=>{
+   listener=autocomplete.addListener('place_changed',()=>{
     const place=autocomplete.getPlace();
     const lat=place.geometry?.location?.lat?.();
     const lng=place.geometry?.location?.lng?.();
     const formattedAddress=place.formatted_address||inputRef.current?.value||'';
-    onSelect({name:place.name||formattedAddress,formattedAddress,lat,lng,placeId:place.place_id});
+    onSelectRef.current({name:place.name||formattedAddress,formattedAddress,lat,lng,placeId:place.place_id});
    });
   }).catch(()=>active&&setAvailable(false));
-  return()=>{active=false};
- },[onSelect]);
- return <><input ref={inputRef} value={value} placeholder={placeholder} autoComplete="off" onChange={e=>onChange(e.target.value)}/>{!available&&<small>Address suggestions unavailable. Check the Google Maps API key.</small>}</>;
+  return()=>{active=false;if(listener)window.google?.maps?.event?.removeListener(listener);autocompleteRef.current=null};
+ },[]);
+ return <><input ref={inputRef} value={value} placeholder={placeholder} autoComplete="off" onChange={e=>onChangeRef.current(e.target.value)}/>{!available&&<small>Address suggestions unavailable. Check the Google Maps API key.</small>}</>;
 }
 
 export function GoogleMap({location,label,className}:{location?:LocationInfo;label:string;className?:string}){
