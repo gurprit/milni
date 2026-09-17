@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from 'next/server';
-import {d1Execute} from '../../../../../../lib/d1';
+import {d1Execute} from '../../../../../lib/d1';
 
 type Event={id:string;start:string;end:string;name:string;description:string;type:string;location?:string};
 type Day={id:string;label:string;date:string;events:Event[]};
