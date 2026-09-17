@@ -1,7 +1,9 @@
 export type EventType='Celebration'|'Food'|'Tradition'|'Ceremony'|'Travel'|'Custom';
 export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType;location?:string};
 export type WeddingDay={id:string;label:string;date:string;events:WeddingEvent[]};
-export type Guest={id:string;name:string;group:string;status:'Going'|'Awaiting RSVP'|'Not going'};
+export type GuestStatus='Going'|'Awaiting RSVP'|'Not going';
+export type GuestSide='Partner one'|'Partner two'|'Both';
+export type Guest={id:string;name:string;group:string;status:GuestStatus;side?:GuestSide;email?:string;phone?:string;dietary?:string;plusOne?:string;notes?:string};
 export type SongRequest={id:string;song:string;likes:number;title?:string;artist?:string;album?:string;artworkUrl?:string;trackUrl?:string;appleTrackId?:number};
 export type SongArchive={id:string;boardDate:string;label:string;songs:SongRequest[]};
 export type WeddingPhoto={id:string;albumId:string;eventId?:string;url:string;caption:string;uploadedBy:string;createdAt:string};
