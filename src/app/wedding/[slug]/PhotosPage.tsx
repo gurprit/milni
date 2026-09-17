@@ -1,10 +1,126 @@
 'use client';
-import {ChangeEvent,useEffect,useMemo,useRef,useState} from 'react';import Link from 'next/link';import {useParams} from 'next/navigation';import {PhotoAlbum,WeddingDraft,WeddingPhoto,emptyDraft,formatDateRange,readWeddingDraft,writeWeddingDraft} from '../../../lib/weddingDraft';import dashboard from './dashboard.module.scss';import styles from './photos.module.scss';
-const VIEW_MODE_KEY='milni:view-mode';const LOCAL_PHOTOS_KEY='milni:photo-previews';const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live']] as const;type PreviewStore=Record<string,string>;
-export default function PhotosPage(){const[draft,setDraft]=useState<WeddingDraft>(emptyDraft);const[organiser,setOrganiser]=useState(false);const[modeReady,setModeReady]=useState(false);const[activeAlbum,setActiveAlbum]=useState('all');const[uploadAlbum,setUploadAlbum]=useState('');const[uploader,setUploader]=useState('');const[caption,setCaption]=useState('');const[previews,setPreviews]=useState<PreviewStore>({});const[lightbox,setLightbox]=useState<WeddingPhoto|null>(null);const[uploading,setUploading]=useState(false);const[uploadError,setUploadError]=useState('');const inputRef=useRef<HTMLInputElement>(null);const params=useParams();
-useEffect(()=>{const loaded=readWeddingDraft();let albums=loaded.photoAlbums??[];if(!albums.length){albums=(loaded.schedule??[]).flatMap(day=>day.events.map(event=>({id:`album-${event.id}`,name:event.name,description:`Photos from ${event.name}`,eventId:event.id})));if(albums.length){loaded.photoAlbums=albums;writeWeddingDraft({photoAlbums:albums})}}setDraft(loaded);setUploadAlbum(albums[0]?.id??'');try{setPreviews(JSON.parse(localStorage.getItem(LOCAL_PHOTOS_KEY)||'{}'))}catch{}setOrganiser(localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)},[]);const setMode=(next:boolean)=>{setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};const albums=draft.photoAlbums??[];const photos=draft.photos??[];const events=useMemo(()=>(draft.schedule??[]).flatMap(day=>day.events.map(event=>({id:event.id,label:`${day.label} · ${event.name}`}))),[draft.schedule]);const saveAlbums=(next:PhotoAlbum[])=>{setDraft(current=>({...current,photoAlbums:next}));writeWeddingDraft({photoAlbums:next})};const savePhotos=(next:WeddingPhoto[])=>{setDraft(current=>({...current,photos:next}));writeWeddingDraft({photos:next})};const addAlbum=()=>saveAlbums([...albums,{id:`album-${Date.now()}`,name:'New album',description:'Wedding memories'}]);const updateAlbum=(id:string,patch:Partial<PhotoAlbum>)=>saveAlbums(albums.map(album=>album.id===id?{...album,...patch}:album));const removeAlbum=(id:string)=>{if(!window.confirm('Remove this album? Photos will remain in the wedding gallery.'))return;saveAlbums(albums.filter(album=>album.id!==id));if(activeAlbum===id)setActiveAlbum('all')};const chooseFiles=()=>inputRef.current?.click();
-const filesSelected=async(e:ChangeEvent<HTMLInputElement>)=>{const files=Array.from(e.target.files??[]).filter(file=>file.type.startsWith('image/'));if(!files.length)return;setUploading(true);setUploadError('');const albumId=uploadAlbum||albums[0]?.id||'general';const eventId=albums.find(album=>album.id===albumId)?.eventId;const created:WeddingPhoto[]=[];try{for(const original of files.slice(0,12)){const file=await resizeForUpload(original);const form=new FormData();form.append('file',file,file.name);form.append('wedding',String(params.slug||'our-wedding'));form.append('area','gallery');form.append('album',albumId);const response=await fetch('/api/media/upload',{method:'POST',body:form});const result=await response.json();if(!response.ok)throw new Error(result.error||'Upload failed');created.push({id:result.key,albumId,eventId,url:result.url,caption:caption.trim(),uploadedBy:uploader.trim()||'Wedding guest',createdAt:new Date().toISOString()})}savePhotos([...created,...photos]);setCaption('')}catch(error){setUploadError(error instanceof Error?error.message:'Upload failed')}finally{setUploading(false);e.target.value=''}};
-const removePhoto=async(id:string)=>{const photo=photos.find(p=>p.id===id);savePhotos(photos.filter(p=>p.id!==id));if(photo&&!photo.url.startsWith('local://'))await fetch('/api/media',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:photo.id})}).catch(()=>{});const next={...previews};delete next[id];setPreviews(next);try{localStorage.setItem(LOCAL_PHOTOS_KEY,JSON.stringify(next))}catch{}};const visible=activeAlbum==='all'?photos:photos.filter(photo=>photo.albumId===activeAlbum);const slug=String(params.slug||'our-wedding');const base=`/wedding/${slug}`;const names=[draft.partnerOne,draft.partnerTwo].filter(Boolean).join(' & ')||'Our Wedding';const src=(photo:WeddingPhoto)=>photo.url.startsWith('local://')?previews[photo.id]:photo.url;
-return <main className={dashboard.shell}><aside className={dashboard.sidebar}><Link href={base} className={dashboard.logo}>MILNI<small>PEOPLE · TRADITIONS · TOGETHER</small></Link><nav>{nav.map(([key,icon,label])=><Link key={key} className={key==='photos'?dashboard.active:''} href={key==='home'?base:`${base}/${key}`}>{icon}<span>{label}</span></Link>)}</nav>{modeReady&&<button className={dashboard.organiserToggle} onClick={()=>setMode(!organiser)}>{organiser?'✓ Organiser mode':'⚙ Organiser mode'}</button>}<div className={dashboard.sideQuote}>Good<br/>People<br/>Great<br/>Celebrations</div></aside><section className={dashboard.content}>{modeReady&&organiser&&<div className={dashboard.organiserBar}><strong>Organiser mode</strong><span>Wedding photos are stored privately in Cloudflare R2.</span><button onClick={()=>setMode(false)}>Preview as guest</button></div>}<header className={dashboard.pageHero}><div><small>{names.toUpperCase()}</small><h1>Wedding photos</h1><p>{formatDateRange(draft.startDate,draft.endDate)} · {draft.city||'Location to be confirmed'}</p></div><Link href={base}>← Wedding home</Link></header><div className={dashboard.pageBody}><section className={styles.uploadHero}><div><span>OUR SHARED ALBUM</span><h2>Everyone saw something different.</h2><p>Add the moments from your phone and they’ll become part of the wedding story.</p></div><button disabled={uploading} onClick={chooseFiles}>{uploading?'Uploading…':'＋ Add photos'}</button><input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={filesSelected}/></section>{uploadError&&<p>{uploadError}</p>}<div className={styles.uploadOptions}><label>Your name<input value={uploader} onChange={e=>setUploader(e.target.value)} placeholder="Who’s sharing these?"/></label><label>Add to album<select value={uploadAlbum} onChange={e=>setUploadAlbum(e.target.value)}><option value="">Wedding gallery</option>{albums.map(album=><option value={album.id} key={album.id}>{album.name}</option>)}</select></label><label>Caption<input value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Optional caption"/></label></div>{organiser&&<section className={styles.albumAdmin}><div className={styles.adminHead}><div><span>ORGANISER</span><h2>Photo albums</h2><p>Albums can be linked to schedule events so guest uploads land in the right part of the wedding.</p></div><button onClick={addAlbum}>＋ Add album</button></div><div className={styles.albumEditors}>{albums.map(album=><article key={album.id}><label>Album name<input value={album.name} onChange={e=>updateAlbum(album.id,{name:e.target.value})}/></label><label>Related event<select value={album.eventId??''} onChange={e=>updateAlbum(album.id,{eventId:e.target.value||undefined})}><option value="">No event</option>{events.map(event=><option value={event.id} key={event.id}>{event.label}</option>)}</select></label><label className={styles.wide}>Description<input value={album.description} onChange={e=>updateAlbum(album.id,{description:e.target.value})}/></label><button onClick={()=>removeAlbum(album.id)}>Remove</button></article>)}</div></section>}<div className={styles.filters}><button className={activeAlbum==='all'?styles.active:''} onClick={()=>setActiveAlbum('all')}>All photos <b>{photos.length}</b></button>{albums.map(album=><button className={activeAlbum===album.id?styles.active:''} key={album.id} onClick={()=>setActiveAlbum(album.id)}>{album.name} <b>{photos.filter(photo=>photo.albumId===album.id).length}</b></button>)}</div>{visible.length?<div className={styles.gallery}>{visible.map(photo=><article key={photo.id} onClick={()=>setLightbox(photo)}><img src={src(photo)} alt={photo.caption||'Wedding photo'}/><div><strong>{photo.caption||albums.find(album=>album.id===photo.albumId)?.name||'Wedding memory'}</strong><span>Shared by {photo.uploadedBy}</span></div>{organiser&&<button onClick={e=>{e.stopPropagation();removePhoto(photo.id)}}>×</button>}</article>)}</div>:<section className={styles.empty}><b>▧</b><h2>The album is waiting for its first memory.</h2><p>Add a photo above and this space will turn into the wedding gallery.</p></section>}<div className={styles.storageNote}><b>Private wedding storage</b><span>New uploads are compressed in your browser, then stored privately in Cloudflare R2. Existing prototype photos remain available from this browser.</span></div></div></section>{lightbox&&<div className={styles.lightbox} onClick={()=>setLightbox(null)}><div onClick={e=>e.stopPropagation()}><button onClick={()=>setLightbox(null)}>×</button><img src={src(lightbox)} alt={lightbox.caption||'Wedding photo'}/><footer><strong>{lightbox.caption||albums.find(album=>album.id===lightbox.albumId)?.name}</strong><span>Shared by {lightbox.uploadedBy}</span></footer></div></div>}</main>}
+import {ChangeEvent,useEffect,useMemo,useRef,useState} from 'react';
+import Link from 'next/link';
+import {useParams} from 'next/navigation';
+import {PhotoAlbum,WeddingDraft,WeddingPhoto,emptyDraft,formatDateRange,readWeddingDraft,writeWeddingDraft} from '../../../lib/weddingDraft';
+import dashboard from './dashboard.module.scss';
+import styles from './photos.module.scss';
+
+const VIEW_MODE_KEY='milni:view-mode';
+const LOCAL_PHOTOS_KEY='milni:photo-previews';
+const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live']] as const;
+type PreviewStore=Record<string,string>;
+
+export default function PhotosPage(){
+ const[draft,setDraft]=useState<WeddingDraft>(emptyDraft);
+ const[organiser,setOrganiser]=useState(false);
+ const[modeReady,setModeReady]=useState(false);
+ const[activeAlbum,setActiveAlbum]=useState('all');
+ const[uploadAlbum,setUploadAlbum]=useState('');
+ const[uploader,setUploader]=useState('');
+ const[caption,setCaption]=useState('');
+ const[previews,setPreviews]=useState<PreviewStore>({});
+ const[lightbox,setLightbox]=useState<WeddingPhoto|null>(null);
+ const[uploading,setUploading]=useState(false);
+ const[uploadError,setUploadError]=useState('');
+ const inputRef=useRef<HTMLInputElement>(null);
+ const params=useParams();
+
+ useEffect(()=>{
+  const loaded=readWeddingDraft();
+  let albums=loaded.photoAlbums??[];
+  if(!albums.length){
+   albums=(loaded.schedule??[]).flatMap(day=>day.events.map(event=>({id:`album-${event.id}`,name:event.name,description:`Photos from ${event.name}`,eventId:event.id})));
+   if(albums.length){loaded.photoAlbums=albums;writeWeddingDraft({photoAlbums:albums})}
+  }
+  setDraft(loaded);
+  setUploadAlbum(albums[0]?.id??'');
+  try{setPreviews(JSON.parse(localStorage.getItem(LOCAL_PHOTOS_KEY)||'{}'))}catch{}
+  setOrganiser(localStorage.getItem(VIEW_MODE_KEY)==='organiser');
+  setModeReady(true);
+ },[]);
+
+ const setMode=(next:boolean)=>{setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
+ const albums=draft.photoAlbums??[];
+ const photos=draft.photos??[];
+ const events=useMemo(()=>(draft.schedule??[]).flatMap(day=>day.events.map(event=>({id:event.id,label:`${day.label} · ${event.name}`}))),[draft.schedule]);
+ const saveAlbums=(next:PhotoAlbum[])=>{setDraft(current=>({...current,photoAlbums:next}));writeWeddingDraft({photoAlbums:next})};
+ const savePhotos=(next:WeddingPhoto[])=>{setDraft(current=>({...current,photos:next}));writeWeddingDraft({photos:next})};
+ const addAlbum=()=>saveAlbums([...albums,{id:`album-${Date.now()}`,name:'New album',description:'Wedding memories'}]);
+ const updateAlbum=(id:string,patch:Partial<PhotoAlbum>)=>saveAlbums(albums.map(album=>album.id===id?{...album,...patch}:album));
+ const removeAlbum=(id:string)=>{if(!window.confirm('Remove this album? Photos will remain in the wedding gallery.'))return;saveAlbums(albums.filter(album=>album.id!==id));if(activeAlbum===id)setActiveAlbum('all')};
+ const chooseFiles=()=>inputRef.current?.click();
+
+ const filesSelected=async(e:ChangeEvent<HTMLInputElement>)=>{
+  const files=Array.from(e.target.files??[]).filter(file=>file.type.startsWith('image/'));
+  if(!files.length)return;
+  setUploading(true);
+  setUploadError('');
+  const albumId=uploadAlbum||albums[0]?.id||'general';
+  const eventId=albums.find(album=>album.id===albumId)?.eventId;
+  const created:WeddingPhoto[]=[];
+  try{
+   for(const original of files.slice(0,12)){
+    const file=await resizeForUpload(original);
+    const form=new FormData();
+    form.append('file',file,file.name);
+    form.append('wedding',String(params.slug||'our-wedding'));
+    form.append('area','gallery');
+    form.append('album',albumId);
+    const response=await fetch('/api/media/upload',{method:'POST',body:form});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'Upload failed');
+    created.push({id:result.key,albumId,eventId,url:result.url,caption:caption.trim(),uploadedBy:uploader.trim()||'Wedding guest',createdAt:new Date().toISOString()});
+   }
+   savePhotos([...created,...photos]);
+   setCaption('');
+  }catch(error){
+   setUploadError(error instanceof Error?error.message:'Upload failed');
+  }finally{
+   setUploading(false);
+   e.target.value='';
+  }
+ };
+
+ const removePhoto=async(id:string)=>{
+  const photo=photos.find(p=>p.id===id);
+  savePhotos(photos.filter(p=>p.id!==id));
+  if(photo&&!photo.url.startsWith('local://')){
+   await fetch('/api/media',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:photo.id})}).catch(()=>{});
+  }
+  const next={...previews};
+  delete next[id];
+  setPreviews(next);
+  try{localStorage.setItem(LOCAL_PHOTOS_KEY,JSON.stringify(next))}catch{}
+ };
+
+ const visible=activeAlbum==='all'?photos:photos.filter(photo=>photo.albumId===activeAlbum);
+ const slug=String(params.slug||'our-wedding');
+ const base=`/wedding/${slug}`;
+ const names=[draft.partnerOne,draft.partnerTwo].filter(Boolean).join(' & ')||'Our Wedding';
+ const src=(photo:WeddingPhoto)=>photo.url.startsWith('local://')?previews[photo.id]:photo.url;
+
+ return <main className={dashboard.shell}><aside className={dashboard.sidebar}><Link href={base} className={dashboard.logo}>MILNI<small>PEOPLE · TRADITIONS · TOGETHER</small></Link><nav>{nav.map(([key,icon,label])=><Link key={key} className={key==='photos'?dashboard.active:''} href={key==='home'?base:`${base}/${key}`}>{icon}<span>{label}</span></Link>)}</nav>{modeReady&&<button className={dashboard.organiserToggle} onClick={()=>setMode(!organiser)}>{organiser?'✓ Organiser mode':'⚙ Organiser mode'}</button>}<div className={dashboard.sideQuote}>Good<br/>People<br/>Great<br/>Celebrations</div></aside><section className={dashboard.content}>{modeReady&&organiser&&<div className={dashboard.organiserBar}><strong>Organiser mode</strong><span>Wedding photos are stored privately in Cloudflare R2.</span><button onClick={()=>setMode(false)}>Preview as guest</button></div>}<header className={dashboard.pageHero}><div><small>{names.toUpperCase()}</small><h1>Wedding photos</h1><p>{formatDateRange(draft.startDate,draft.endDate)} · {draft.city||'Location to be confirmed'}</p></div><Link href={base}>← Wedding home</Link></header><div className={dashboard.pageBody}><section className={styles.uploadHero}><div><span>OUR SHARED ALBUM</span><h2>Everyone saw something different.</h2><p>Add the moments from your phone and they’ll become part of the wedding story.</p></div><button disabled={uploading} onClick={chooseFiles}>{uploading?'Uploading…':'＋ Add photos'}</button><input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={filesSelected}/></section>{uploadError&&<p>{uploadError}</p>}<div className={styles.uploadOptions}><label>Your name<input value={uploader} onChange={e=>setUploader(e.target.value)} placeholder="Who’s sharing these?"/></label><label>Add to album<select value={uploadAlbum} onChange={e=>setUploadAlbum(e.target.value)}><option value="">Wedding gallery</option>{albums.map(album=><option value={album.id} key={album.id}>{album.name}</option>)}</select></label><label>Caption<input value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Optional caption"/></label></div>{organiser&&<section className={styles.albumAdmin}><div className={styles.adminHead}><div><span>ORGANISER</span><h2>Photo albums</h2><p>Albums can be linked to schedule events so guest uploads land in the right part of the wedding.</p></div><button onClick={addAlbum}>＋ Add album</button></div><div className={styles.albumEditors}>{albums.map(album=><article key={album.id}><label>Album name<input value={album.name} onChange={e=>updateAlbum(album.id,{name:e.target.value})}/></label><label>Related event<select value={album.eventId??''} onChange={e=>updateAlbum(album.id,{eventId:e.target.value||undefined})}><option value="">No event</option>{events.map(event=><option value={event.id} key={event.id}>{event.label}</option>)}</select></label><label className={styles.wide}>Description<input value={album.description} onChange={e=>updateAlbum(album.id,{description:e.target.value})}/></label><button onClick={()=>removeAlbum(album.id)}>Remove</button></article>)}</div></section>}<div className={styles.filters}><button className={activeAlbum==='all'?styles.active:''} onClick={()=>setActiveAlbum('all')}>All photos <b>{photos.length}</b></button>{albums.map(album=><button className={activeAlbum===album.id?styles.active:''} key={album.id} onClick={()=>setActiveAlbum(album.id)}>{album.name} <b>{photos.filter(photo=>photo.albumId===album.id).length}</b></button>)}</div>{visible.length?<div className={styles.gallery}>{visible.map(photo=><article key={photo.id} onClick={()=>setLightbox(photo)}><img src={src(photo)} alt={photo.caption||'Wedding photo'}/><div><strong>{photo.caption||albums.find(album=>album.id===photo.albumId)?.name||'Wedding memory'}</strong><span>Shared by {photo.uploadedBy}</span></div>{organiser&&<button onClick={e=>{e.stopPropagation();removePhoto(photo.id)}}>×</button>}</article>)}</div>:<section className={styles.empty}><b>▧</b><h2>The album is waiting for its first memory.</h2><p>Add a photo above and this space will turn into the wedding gallery.</p></section>}<div className={styles.storageNote}><b>Private wedding storage</b><span>New uploads are compressed in your browser, then stored privately in Cloudflare R2. Existing prototype photos remain available from this browser.</span></div></div></section>{lightbox&&<div className={styles.lightbox} onClick={()=>setLightbox(null)}><div onClick={e=>e.stopPropagation()}><button onClick={()=>setLightbox(null)}>×</button><img src={src(lightbox)} alt={lightbox.caption||'Wedding photo'}/><footer><strong>{lightbox.caption||albums.find(album=>album.id===lightbox.albumId)?.name}</strong><span>Shared by {lightbox.uploadedBy}</span></footer></div></div>}</main>;
 }
-async function resizeForUpload(file:File){return new Promise<File>((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(reader.error);reader.onload=()=>{const img=new Image();img.onerror=()=>resolve(file);img.onload=()=>{const max=1800;const scale=Math.min(1,max/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d')?.drawImage(img,0,0,canvas.width,canvas.height);canvas.toBlob(blob=>resolve(blob?new File([blob],`${file.name.replace(/\.[^.]+$/,'')}.jpg`,{type:'image/jpeg'}):file),'image/jpeg',.82)};img.src=String(reader.result)};reader.readAsDataURL(file)})}
+
+async function resizeForUpload(file:File){
+ return new Promise<File>((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onerror=()=>reject(reader.error);
+  reader.onload=()=>{
+   const img=new Image();
+   img.onerror=()=>resolve(file);
+   img.onload=()=>{
+    const max=1800;
+    const scale=Math.min(1,max/Math.max(img.width,img.height));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.round(img.width*scale);
+    canvas.height=Math.round(img.height*scale);
+    canvas.getContext('2d')?.drawImage(img,0,0,canvas.width,canvas.height);
+    canvas.toBlob(blob=>resolve(blob?new File([blob],`${file.name.replace(/\.[^.]+$/,'')}.jpg`,{type:'image/jpeg'}):file),'image/jpeg',.82);
+   };
+   img.src=String(reader.result);
+  };
+  reader.readAsDataURL(file);
+ });
+}
