@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.scss';
-import { EventType, WeddingDay, WeddingEvent, readWeddingDraft, writeWeddingDraft } from '../../../lib/weddingDraft';
+import { EventType, WeddingDay, WeddingEvent, readWeddingDraft, weddingSlug, writeWeddingDraft } from '../../../lib/weddingDraft';
 
 const initialDays:WeddingDay[]=[
 {id:'day-1',label:'Day 1',date:'Thursday',events:[
@@ -28,7 +28,7 @@ export default function ScheduleBuilder(){
  const [editing,setEditing]=useState<{dayId:string,event:WeddingEvent}|null>(null);
  const [menu,setMenu]=useState<string|null>(null);
  useEffect(()=>{const draft=readWeddingDraft();setTraditions(draft.traditions||[]);if(draft.schedule?.length)setDays(draft.schedule);setHydrated(true)},[]);
- useEffect(()=>{if(hydrated)writeWeddingDraft({schedule:days})},[days,hydrated]);
+ useEffect(()=>{if(!hydrated)return;writeWeddingDraft({schedule:days});const next={...readWeddingDraft(),schedule:days};const slug=weddingSlug(next);fetch(`/api/weddings/${encodeURIComponent(slug)}/sync`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(next)}).catch(error=>console.error('D1 schedule save failed',error))},[days,hydrated]);
  const events=useMemo(()=>days.flatMap(d=>d.events),[days]); const first=events[0],last=events.at(-1);
  const add=(dayId=days[0]?.id)=>{if(dayId)setEditing({dayId,event:newEvent()})};
  const save=()=>{if(!editing)return;setDays(ds=>ds.map(d=>d.id!==editing.dayId?d:{...d,events:d.events.some(e=>e.id===editing.event.id)?d.events.map(e=>e.id===editing.event.id?editing.event:e):[...d.events,editing.event]}));setEditing(null)};
