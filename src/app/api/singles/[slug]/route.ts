@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server';
-import {d1Execute,d1Query} from '../../../../../lib/d1';
+import {d1Execute,d1Query} from '../../../../lib/d1';
 
 type WeddingRow={id:string};
 type ProfileRow={id:string;guest_id:string;name:string;age:number;pronouns:string|null;wedding_side:string|null;connection_to_couple:string|null;bio:string|null;interests:string|null;photo_object_key:string|null;opted_in:number};
