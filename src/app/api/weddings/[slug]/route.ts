@@ -1,7 +1,7 @@
 import {NextResponse} from 'next/server';
 import {d1Query} from '../../../../lib/d1';
 
-type WeddingRow={id:string;slug:string;partner_one:string;partner_two:string;title:string|null;city:string|null;start_date:string|null;end_date:string|null};
+type WeddingRow={id:string;slug:string;partner_one:string;partner_two:string;title:string|null;city:string|null;start_date:string|null;end_date:string|null;invite_hero_key?:string|null};
 type EventRow={id:string;day_label:string|null;event_date:string|null;name:string;description:string|null;event_type:string|null;start_time:string|null;end_time:string|null;location:string|null;sort_order:number};
 type AlbumRow={id:string;event_id:string|null;name:string;description:string|null;cover_object_key:string|null};
 type GuestRow={id:string;name:string;email:string|null;phone:string|null;guest_group:string|null;rsvp_status:string;wedding_side:string|null;dietary:string|null;plus_one:string|null;organiser_notes:string|null};
