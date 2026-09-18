@@ -18,7 +18,7 @@ export default function WeddingDashboard({section='home'}:{section?:Section}){
  const [draft,setDraft]=useState<WeddingDraft>(emptyDraft); const [organiser,setOrganiser]=useState(false); const [modeReady,setModeReady]=useState(false); const params=useParams();
  useEffect(()=>{setDraft(readWeddingDraft());setOrganiser(localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)},[]);
  const setMode=(next:boolean)=>{setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
- const save=(patch:Partial<WeddingDraft>)=>{const next={...draft,...patch};setDraft(next);writeWeddingDraft(patch)};
+ const save=(patch:Partial<WeddingDraft>)=>{const next={...draft,...patch};setDraft(next);writeWeddingDraft(patch);fetch(`/api/weddings/${encodeURIComponent(slug)}/sync`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(next)}).catch(error=>console.error('D1 wedding save failed',error))};
  const slug=String(params.slug||'our-wedding'); const base=`/wedding/${slug}`; const names=[draft.partnerOne,draft.partnerTwo].filter(Boolean).join(' & ')||'Our Wedding';
  const events=useMemo(()=>draft.schedule?.flatMap(day=>day.events.map(e=>({...e,day:day.date,label:day.label})))??[],[draft.schedule]);
  const pageTitle={home:'Welcome',schedule:'Wedding schedule',events:'Events',travel:'Travel & coaches',menu:'Menus',music:'Song requests',photos:'Wedding photos',guests:'Guest list',singles:'Singles',live:'Live updates'}[section];
