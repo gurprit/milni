@@ -11,8 +11,11 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{slug:st
  try{
   const{slug}=await params;
   const draft=await request.json() as Draft;
-  const weddingId=`wedding-${slug}`;
-  await d1Execute(`INSERT INTO weddings (id,slug,partner_one,partner_two,title,city,start_date,end_date,updated_at) VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(slug) DO UPDATE SET partner_one=excluded.partner_one,partner_two=excluded.partner_two,title=excluded.title,city=excluded.city,start_date=excluded.start_date,end_date=excluded.end_date,updated_at=CURRENT_TIMESTAMP`,[weddingId,slug,draft.partnerOne||'',draft.partnerTwo||'',draft.title||'',draft.city||'',draft.startDate||'',draft.endDate||'']);
+  const proposedWeddingId=`wedding-${slug}`;
+  await d1Execute(`INSERT INTO weddings (id,slug,partner_one,partner_two,title,city,start_date,end_date,updated_at) VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(slug) DO UPDATE SET partner_one=excluded.partner_one,partner_two=excluded.partner_two,title=excluded.title,city=excluded.city,start_date=excluded.start_date,end_date=excluded.end_date,updated_at=CURRENT_TIMESTAMP`,[proposedWeddingId,slug,draft.partnerOne||'',draft.partnerTwo||'',draft.title||'',draft.city||'',draft.startDate||'',draft.endDate||'']);
+  const weddingRow=(await d1Query<{id:string}>('SELECT id FROM weddings WHERE slug=? LIMIT 1',[slug]))[0];
+  if(!weddingRow)throw new Error('Wedding could not be resolved after sync');
+  const weddingId=weddingRow.id;
   const incomingGuestIds=(draft.guests??[]).map(guest=>guest.id);
   const existingGuests=await d1Query<{id:string}>('SELECT id FROM guests WHERE wedding_id=?',[weddingId]);
   for(const existing of existingGuests)if(!incomingGuestIds.includes(existing.id))await d1Execute('DELETE FROM guests WHERE id=? AND wedding_id=?',[existing.id,weddingId]);
