@@ -1,5 +1,5 @@
 export type EventType='Celebration'|'Food'|'Tradition'|'Ceremony'|'Travel'|'Custom';
-export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType;location?:string};
+export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType;location?:string;rsvpEnabled?:boolean};
 export type WeddingDay={id:string;label:string;date:string;events:WeddingEvent[]};
 export type GuestStatus='Going'|'Awaiting RSVP'|'Not going';
 export type GuestSide='Partner one'|'Partner two'|'Both';
