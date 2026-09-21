@@ -1,5 +1,7 @@
 import {NextResponse} from 'next/server';
 import {d1Query} from '../../../../lib/d1';
+import {currentOrganiserSession} from '../../../../lib/organiserSession';
+import {currentGuestSession} from '../../../../lib/guestSession';
 
 type WeddingRow={id:string;slug:string;partner_one:string;partner_two:string;title:string|null;city:string|null;start_date:string|null;end_date:string|null;invite_hero_key?:string|null};
 type EventRow={id:string;day_label:string|null;event_date:string|null;name:string;description:string|null;event_type:string|null;start_time:string|null;end_time:string|null;location:string|null;sort_order:number;rsvp_enabled?:number};
@@ -13,10 +15,13 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
   const weddings=await d1Query<WeddingRow>('SELECT id,slug,partner_one,partner_two,title,city,start_date,end_date FROM weddings WHERE slug=? LIMIT 1',[slug]);
   const wedding=weddings[0];
   if(!wedding)return NextResponse.json({ok:false,error:'Wedding not found'},{status:404});
+  const organiser=await currentOrganiserSession();
+  const guestSession=await currentGuestSession();
+  const canSeePrivateGuests=Boolean(organiser);
   const[events,albums,guests]=await Promise.all([
    d1Query<EventRow>('SELECT id,day_label,event_date,name,description,event_type,start_time,end_time,location,rsvp_enabled,sort_order FROM events WHERE wedding_id=? ORDER BY sort_order,event_date,start_time',[wedding.id]),
    d1Query<AlbumRow>('SELECT id,event_id,name,description,cover_object_key FROM photo_albums WHERE wedding_id=? ORDER BY created_at,id',[wedding.id]),
-   d1Query<GuestRow>('SELECT id,name,email,phone,guest_group,rsvp_status,wedding_side,dietary,plus_one,organiser_notes FROM guests WHERE wedding_id=? ORDER BY name',[wedding.id])
+   canSeePrivateGuests?d1Query<GuestRow>('SELECT id,name,email,phone,guest_group,rsvp_status,wedding_side,dietary,plus_one,organiser_notes FROM guests WHERE wedding_id=? ORDER BY name',[wedding.id]):guestSession&&guestSession.weddingId===wedding.id?d1Query<GuestRow>('SELECT id,name,NULL AS email,NULL AS phone,guest_group,rsvp_status,wedding_side,NULL AS dietary,NULL AS plus_one,NULL AS organiser_notes FROM guests WHERE wedding_id=? ORDER BY name',[wedding.id]):Promise.resolve([] as GuestRow[])
   ]);
   const days=new Map<string,{id:string;label:string;date:string;events:{id:string;start:string;end:string;name:string;description:string;type:string;location?:string;rsvpEnabled?:boolean}[]}>();
   for(const event of events){const date=event.event_date??'';const label=event.day_label??'Wedding day';const key=`${date}|${label}`;if(!days.has(key))days.set(key,{id:`day-${date||label.toLowerCase().replace(/[^a-z0-9]+/g,'-')}`,label,date,events:[]});days.get(key)!.events.push({id:event.id,start:event.start_time??'',end:event.end_time??'',name:event.name,description:event.description??'',type:event.event_type??'Celebration',...(event.location?{location:event.location}:{}),rsvpEnabled:event.rsvp_enabled!==0})}
