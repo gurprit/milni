@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {d1Execute,d1Query} from '../../../../../lib/d1';
+import {currentOrganiserSession} from '../../../../../lib/organiserSession';
 
 type Event={id:string;start:string;end:string;name:string;description:string;type:string;location?:string;rsvpEnabled?:boolean};
 type Day={id:string;label:string;date:string;events:Event[]};
@@ -9,6 +10,8 @@ type Draft={partnerOne:string;partnerTwo:string;title:string;city:string;startDa
 
 export async function POST(request:NextRequest,{params}:{params:Promise<{slug:string}>}){
  try{
+  const organiser=await currentOrganiserSession();
+  if(!organiser)return NextResponse.json({ok:false,error:'Organiser sign-in required.'},{status:401});
   const{slug}=await params;
   const draft=await request.json() as Draft;
   try{await d1Execute('ALTER TABLE events ADD COLUMN rsvp_enabled INTEGER NOT NULL DEFAULT 1')}catch{}
