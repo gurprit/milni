@@ -12,11 +12,11 @@ const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','
 
 export default function TravelPage(){
  const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);
- const [organiser,setOrganiser]=useState(false);
+ const [organiser,setOrganiser]=useState(false);const [organiserAuthed,setOrganiserAuthed]=useState(false);
  const [modeReady,setModeReady]=useState(false);
  const params=useParams();
- useEffect(()=>{setDraft(readWeddingDraft());setOrganiser(localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)},[]);
- const setMode=(next:boolean)=>{setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
+ useEffect(()=>{setDraft(readWeddingDraft());void fetch('/api/organiser-session',{cache:'no-store'}).then(r=>r.json()).then(x=>{const authed=!!x.organiser;setOrganiserAuthed(authed);setOrganiser(authed&&localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)}).catch(()=>setModeReady(true))},[]);
+ const setMode=(next:boolean)=>{if(next&&!organiserAuthed){window.location.href=`/wedding/${String(params.slug||'our-wedding')}`;return}setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
  const save=(patch:Partial<WeddingDraft>)=>{setDraft(current=>({...current,...patch}));writeWeddingDraft(patch)};
  const slug=String(params.slug||'our-wedding');
  const base=`/wedding/${slug}`;
