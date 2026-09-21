@@ -13,7 +13,7 @@ const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','
 
 export default function TravelPage(){
  const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);
- const [organiser,setOrganiser]=useState(false);const [organiserAuthed,setOrganiserAuthed]=useState(false);const [showOrganiserLogin,setShowOrganiserLogin]=useState(false);const [showOrganiserLogin,setShowOrganiserLogin]=useState(false);
+ const [organiser,setOrganiser]=useState(false);const [organiserAuthed,setOrganiserAuthed]=useState(false);const [showOrganiserLogin,setShowOrganiserLogin]=useState(false);
  const [modeReady,setModeReady]=useState(false);
  const params=useParams();
  useEffect(()=>{setDraft(readWeddingDraft());void fetch('/api/organiser-session',{cache:'no-store'}).then(r=>r.json()).then(x=>{const authed=!!x.organiser;setOrganiserAuthed(authed);setOrganiser(authed&&localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)}).catch(()=>setModeReady(true))},[]);
