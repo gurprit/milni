@@ -1,5 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {d1Execute,d1Query} from '../../../../../lib/d1';
+import {currentOrganiserSession} from '../../../../../lib/organiserSession';
+import {currentGuestSession} from '../../../../../lib/guestSession';
 
 type PhotoRow={id:string;album_id:string|null;event_id:string|null;object_key:string;caption:string|null;uploaded_by_name:string|null;created_at:string};
 async function weddingId(slug:string){const rows=await d1Query<{id:string}>('SELECT id FROM weddings WHERE slug=? LIMIT 1',[slug]);return rows[0]?.id}
@@ -9,9 +11,9 @@ export async function GET(_request:NextRequest,{params}:{params:Promise<{slug:st
 }
 
 export async function POST(request:NextRequest,{params}:{params:Promise<{slug:string}>}){
- try{const{slug}=await params;const body=await request.json() as {id:string;albumId?:string;eventId?:string;objectKey:string;caption?:string;uploadedBy?:string};const id=await weddingId(slug);if(!id)return NextResponse.json({ok:false,error:'Wedding has not been synced yet'},{status:409});await d1Execute('INSERT INTO photos (id,wedding_id,album_id,event_id,object_key,caption,uploaded_by_name) VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET album_id=excluded.album_id,event_id=excluded.event_id,caption=excluded.caption,uploaded_by_name=excluded.uploaded_by_name',[body.id,id,body.albumId||null,body.eventId||null,body.objectKey,body.caption??'',body.uploadedBy??'Wedding guest']);return NextResponse.json({ok:true})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not save photo'},{status:500})}
+ try{const{slug}=await params;const session=await currentGuestSession();const organiser=await currentOrganiserSession();const wid=await weddingId(slug);if(!wid||(!organiser&&(!session||session.weddingId!==wid||session.weddingSlug!==slug)))return NextResponse.json({ok:false,error:'Join this wedding before adding photos.'},{status:401});const body=await request.json() as {id:string;albumId?:string;eventId?:string;objectKey:string;caption?:string;uploadedBy?:string};const id=wid;await d1Execute('INSERT INTO photos (id,wedding_id,album_id,event_id,object_key,caption,uploaded_by_name) VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET album_id=excluded.album_id,event_id=excluded.event_id,caption=excluded.caption,uploaded_by_name=excluded.uploaded_by_name',[body.id,id,body.albumId||null,body.eventId||null,body.objectKey,body.caption??'',body.uploadedBy??'Wedding guest']);return NextResponse.json({ok:true})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not save photo'},{status:500})}
 }
 
 export async function DELETE(request:NextRequest,{params}:{params:Promise<{slug:string}>}){
- try{const{slug}=await params;const{id}=await request.json() as {id:string};const wid=await weddingId(slug);if(wid)await d1Execute('DELETE FROM photos WHERE id=? AND wedding_id=?',[id,wid]);return NextResponse.json({ok:true})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not remove photo'},{status:500})}
+ try{const organiser=await currentOrganiserSession();if(!organiser)return NextResponse.json({ok:false,error:'Organiser sign-in required.'},{status:401});const{slug}=await params;const{id}=await request.json() as {id:string};const wid=await weddingId(slug);if(wid)await d1Execute('DELETE FROM photos WHERE id=? AND wedding_id=?',[id,wid]);return NextResponse.json({ok:true})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not remove photo'},{status:500})}
 }
