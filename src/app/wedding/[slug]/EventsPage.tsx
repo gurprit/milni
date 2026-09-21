@@ -12,10 +12,10 @@ const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','
 const eventTypes:EventType[]=['Celebration','Food','Tradition','Ceremony','Travel','Custom'];
 
 export default function EventsPage(){
- const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);const [organiser,setOrganiser]=useState(false);const [modeReady,setModeReady]=useState(false);const [editingId,setEditingId]=useState<string|null>(null);const [editDraft,setEditDraft]=useState<WeddingEvent|null>(null);const [openMenu,setOpenMenu]=useState<MenuItem|null>(null);const params=useParams();
- useEffect(()=>{setDraft(readWeddingDraft());setOrganiser(localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)},[]);
+ const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);const [organiser,setOrganiser]=useState(false);const [organiserAuthed,setOrganiserAuthed]=useState(false);const [modeReady,setModeReady]=useState(false);const [editingId,setEditingId]=useState<string|null>(null);const [editDraft,setEditDraft]=useState<WeddingEvent|null>(null);const [openMenu,setOpenMenu]=useState<MenuItem|null>(null);const params=useParams();
+ useEffect(()=>{setDraft(readWeddingDraft());void fetch('/api/organiser-session',{cache:'no-store'}).then(r=>r.json()).then(x=>{const authed=!!x.organiser;setOrganiserAuthed(authed);setOrganiser(authed&&localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)}).catch(()=>setModeReady(true))},[]);
  useEffect(()=>{if(!openMenu)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpenMenu(null)};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[openMenu]);
- const setMode=(next:boolean)=>{setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
+ const setMode=(next:boolean)=>{if(next&&!organiserAuthed){window.location.href=`/wedding/${String(params.slug||'our-wedding')}`;return}setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
  const slug=String(params.slug||'our-wedding');
  const save=(patch:Partial<WeddingDraft>)=>{setDraft(current=>{const next={...current,...patch};fetch(`/api/weddings/${encodeURIComponent(slug)}/sync`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(next)}).catch(error=>console.error('D1 wedding save failed',error));return next});writeWeddingDraft(patch)};
  const schedule=draft.schedule??[];const events=schedule.flatMap(day=>day.events.map(e=>({...e,day:day.date,label:day.label,dayId:day.id})));const menus=draft.menus??[];
