@@ -1,0 +1,8 @@
+import crypto from 'node:crypto';
+import {NextResponse} from 'next/server';
+import {cookies} from 'next/headers';
+import {currentOrganiserSession,encodeOrganiserSession,ORGANISER_COOKIE} from '../../../lib/organiserSession';
+const safeEqual=(a:string,b:string)=>{const aa=Buffer.from(a),bb=Buffer.from(b);return aa.length===bb.length&&crypto.timingSafeEqual(aa,bb)};
+export async function GET(){const session=await currentOrganiserSession();return NextResponse.json({ok:true,organiser:session?{email:session.email}:null})}
+export async function POST(request:Request){const{email,password}=await request.json();const expectedEmail=process.env.MILNI_ORGANISER_EMAIL||'';const expectedPassword=process.env.MILNI_ORGANISER_PASSWORD||'';if(!expectedEmail||!expectedPassword)return NextResponse.json({ok:false,error:'Organiser login has not been configured yet.'},{status:503});if(!safeEqual(String(email||'').trim().toLowerCase(),expectedEmail.trim().toLowerCase())||!safeEqual(String(password||''),expectedPassword))return NextResponse.json({ok:false,error:'Email or password is incorrect.'},{status:401});const expiresAt=Date.now()+1000*60*60*24*14;(await cookies()).set(ORGANISER_COOKIE,encodeOrganiserSession({email:expectedEmail,expiresAt}),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',expires:new Date(expiresAt)});return NextResponse.json({ok:true,organiser:{email:expectedEmail}})}
+export async function DELETE(){(await cookies()).set(ORGANISER_COOKIE,'',{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',maxAge:0});return NextResponse.json({ok:true})}
