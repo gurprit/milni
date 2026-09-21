@@ -22,7 +22,7 @@ const newDish=():MenuDish=>({id:`dish-${Date.now()}-${Math.random().toString(36)
 const newCourse=():MenuCourse=>({id:`course-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,name:'New course',dishes:[newDish()]});
 
 export default function MenuPage(){
- const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);const [organiser,setOrganiser]=useState(false);const [organiserAuthed,setOrganiserAuthed]=useState(false);const [showOrganiserLogin,setShowOrganiserLogin]=useState(false);const [showOrganiserLogin,setShowOrganiserLogin]=useState(false);const [modeReady,setModeReady]=useState(false);const [saveState,setSaveState]=useState<SaveState>('idle');
+ const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);const [organiser,setOrganiser]=useState(false);const [organiserAuthed,setOrganiserAuthed]=useState(false);const [showOrganiserLogin,setShowOrganiserLogin]=useState(false);const [modeReady,setModeReady]=useState(false);const [saveState,setSaveState]=useState<SaveState>('idle');
  const savingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);const idleTimer=useRef<ReturnType<typeof setTimeout>|null>(null);const params=useParams();
  useEffect(()=>{setDraft(readWeddingDraft());void fetch('/api/organiser-session',{cache:'no-store'}).then(r=>r.json()).then(x=>{const authed=!!x.organiser;setOrganiserAuthed(authed);setOrganiser(authed&&localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)}).catch(()=>setModeReady(true));return()=>{if(savingTimer.current)clearTimeout(savingTimer.current);if(idleTimer.current)clearTimeout(idleTimer.current)}},[]);
  const setMode=(next:boolean)=>{if(next&&!organiserAuthed){setShowOrganiserLogin(true);return}setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
