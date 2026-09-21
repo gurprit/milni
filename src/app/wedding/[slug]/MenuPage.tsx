@@ -21,10 +21,10 @@ const newDish=():MenuDish=>({id:`dish-${Date.now()}-${Math.random().toString(36)
 const newCourse=():MenuCourse=>({id:`course-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,name:'New course',dishes:[newDish()]});
 
 export default function MenuPage(){
- const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);const [organiser,setOrganiser]=useState(false);const [modeReady,setModeReady]=useState(false);const [saveState,setSaveState]=useState<SaveState>('idle');
+ const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);const [organiser,setOrganiser]=useState(false);const [organiserAuthed,setOrganiserAuthed]=useState(false);const [modeReady,setModeReady]=useState(false);const [saveState,setSaveState]=useState<SaveState>('idle');
  const savingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);const idleTimer=useRef<ReturnType<typeof setTimeout>|null>(null);const params=useParams();
- useEffect(()=>{setDraft(readWeddingDraft());setOrganiser(localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true);return()=>{if(savingTimer.current)clearTimeout(savingTimer.current);if(idleTimer.current)clearTimeout(idleTimer.current)}},[]);
- const setMode=(next:boolean)=>{setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
+ useEffect(()=>{setDraft(readWeddingDraft());void fetch('/api/organiser-session',{cache:'no-store'}).then(r=>r.json()).then(x=>{const authed=!!x.organiser;setOrganiserAuthed(authed);setOrganiser(authed&&localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)}).catch(()=>setModeReady(true));return()=>{if(savingTimer.current)clearTimeout(savingTimer.current);if(idleTimer.current)clearTimeout(idleTimer.current)}},[]);
+ const setMode=(next:boolean)=>{if(next&&!organiserAuthed){window.location.href=`/wedding/${String(params.slug||'our-wedding')}`;return}setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
  const showSaved=()=>{if(savingTimer.current)clearTimeout(savingTimer.current);if(idleTimer.current)clearTimeout(idleTimer.current);setSaveState('saving');savingTimer.current=setTimeout(()=>{setSaveState('saved');idleTimer.current=setTimeout(()=>setSaveState('idle'),2200)},280)};
  const save=(patch:Partial<WeddingDraft>)=>{setDraft(current=>({...current,...patch}));writeWeddingDraft(patch);showSaved()};
  const menus=draft.menus&&draft.menus.length?draft.menus:starterMenus;
