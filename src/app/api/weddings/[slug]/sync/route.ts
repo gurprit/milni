@@ -2,7 +2,7 @@ import {NextRequest,NextResponse} from 'next/server';
 import {d1Execute,d1Query} from '../../../../../lib/d1';
 import {currentOrganiserSession} from '../../../../../lib/organiserSession';
 
-type Event={id:string;start:string;end:string;name:string;description:string;type:string;location?:string;rsvpEnabled?:boolean};
+type Event={id:string;start:string;end:string;name:string;description:string;type:string;location?:string;rsvpEnabled?:boolean;inviteMode?:string;invitedGroups?:string[];invitedGuestIds?:string[]};
 type Day={id:string;label:string;date:string;events:Event[]};
 type Album={id:string;name:string;description:string;eventId?:string};
 type Guest={id:string;name:string;group:string;status:string;side?:string;email?:string;phone?:string;dietary?:string;plusOne?:string;notes?:string};
@@ -15,6 +15,9 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{slug:st
   const{slug}=await params;
   const draft=await request.json() as Draft;
   try{await d1Execute('ALTER TABLE events ADD COLUMN rsvp_enabled INTEGER NOT NULL DEFAULT 1')}catch{}
+  try{await d1Execute("ALTER TABLE events ADD COLUMN invite_mode TEXT NOT NULL DEFAULT 'Everyone'")}catch{}
+  try{await d1Execute('ALTER TABLE events ADD COLUMN invited_groups TEXT')}catch{}
+  try{await d1Execute('ALTER TABLE events ADD COLUMN invited_guest_ids TEXT')}catch{}
   const proposedWeddingId=`wedding-${slug}`;
   await d1Execute(`INSERT INTO weddings (id,slug,partner_one,partner_two,title,city,start_date,end_date,updated_at) VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(slug) DO UPDATE SET partner_one=excluded.partner_one,partner_two=excluded.partner_two,title=excluded.title,city=excluded.city,start_date=excluded.start_date,end_date=excluded.end_date,updated_at=CURRENT_TIMESTAMP`,[proposedWeddingId,slug,draft.partnerOne||'',draft.partnerTwo||'',draft.title||'',draft.city||'',draft.startDate||'',draft.endDate||'']);
   const weddingRow=(await d1Query<{id:string}>('SELECT id FROM weddings WHERE slug=? LIMIT 1',[slug]))[0];
@@ -28,7 +31,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{slug:st
   const existingEvents=await d1Query<{id:string}>('SELECT id FROM events WHERE wedding_id=?',[weddingId]);
   for(const existing of existingEvents)if(!incomingEventIds.includes(existing.id))await d1Execute('DELETE FROM events WHERE id=? AND wedding_id=?',[existing.id,weddingId]);
   let order=0;
-  for(const day of draft.schedule??[])for(const event of day.events){await d1Execute(`INSERT INTO events (id,wedding_id,day_label,event_date,name,description,event_type,start_time,end_time,location,rsvp_enabled,sort_order,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET day_label=excluded.day_label,event_date=excluded.event_date,name=excluded.name,description=excluded.description,event_type=excluded.event_type,start_time=excluded.start_time,end_time=excluded.end_time,location=excluded.location,rsvp_enabled=excluded.rsvp_enabled,sort_order=excluded.sort_order,updated_at=CURRENT_TIMESTAMP`,[event.id,weddingId,day.label,day.date,event.name,event.description,event.type,event.start,event.end,event.location??null,event.rsvpEnabled===false?0:1,order++]);}
+  for(const day of draft.schedule??[])for(const event of day.events){await d1Execute(`INSERT INTO events (id,wedding_id,day_label,event_date,name,description,event_type,start_time,end_time,location,rsvp_enabled,invite_mode,invited_groups,invited_guest_ids,sort_order,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET day_label=excluded.day_label,event_date=excluded.event_date,name=excluded.name,description=excluded.description,event_type=excluded.event_type,start_time=excluded.start_time,end_time=excluded.end_time,location=excluded.location,rsvp_enabled=excluded.rsvp_enabled,invite_mode=excluded.invite_mode,invited_groups=excluded.invited_groups,invited_guest_ids=excluded.invited_guest_ids,sort_order=excluded.sort_order,updated_at=CURRENT_TIMESTAMP`,[event.id,weddingId,day.label,day.date,event.name,event.description,event.type,event.start,event.end,event.location??null,event.rsvpEnabled===false?0:1,event.inviteMode??'Everyone',JSON.stringify(event.invitedGroups??[]),JSON.stringify(event.invitedGuestIds??[]),order++]);}
   const incomingAlbumIds=(draft.photoAlbums??[]).map(album=>album.id);
   const existingAlbums=await d1Query<{id:string}>('SELECT id FROM photo_albums WHERE wedding_id=?',[weddingId]);
   for(const existing of existingAlbums)if(!incomingAlbumIds.includes(existing.id))await d1Execute('DELETE FROM photo_albums WHERE id=? AND wedding_id=?',[existing.id,weddingId]);
