@@ -9,7 +9,7 @@ import dashboard from './dashboard.module.scss';
 import styles from './menu.module.scss';
 
 const VIEW_MODE_KEY='milni:view-mode';
-const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live']] as const;
+const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live'],['invite','✉','Invitation']] as const;
 const tags:DietaryTag[]=['Vegetarian','Vegan','Halal','Gluten-free'];
 const starterMenus:MenuItem[]=[
  {id:'menu-welcome',name:'Welcome dinner',subtitle:'Vegetarian sharing feast',details:'A relaxed first-night feast for everyone to share.',courses:[{id:'course-starters',name:'To start',dishes:[{id:'dish-paneer',name:'Paneer tikka',description:'Charred paneer, peppers and mint chutney',tags:['Vegetarian','Gluten-free'],allergens:'Milk'},{id:'dish-chaat',name:'Papdi chaat',description:'Crisp papdi, yoghurt, tamarind and chutneys',tags:['Vegetarian'],allergens:'Gluten, milk'}]},{id:'course-main',name:'Main feast',dishes:[{id:'dish-dal',name:'Dal makhani',description:'Slow-cooked black lentils with fragrant spices',tags:['Vegetarian','Gluten-free'],allergens:'Milk'},{id:'dish-rice',name:'Jeera rice',description:'Basmati rice with cumin',tags:['Vegan','Gluten-free'],allergens:''}]}]},
