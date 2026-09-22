@@ -5,7 +5,7 @@ import {useParams} from 'next/navigation';
 import QRCode from 'qrcode';
 import InvitationManager from './InvitationManager';
 import OrganiserLoginModal from '../OrganiserLoginModal';
-import {invitationCode,WeddingDraft,emptyDraft,formatDateRange} from '../../../../../lib/weddingDraft';
+import {invitationCode,WeddingDraft,emptyDraft,formatDateRange} from '../../../../lib/weddingDraft';
 import dashboard from '../dashboard.module.scss';
 import styles from './page.module.scss';
 
