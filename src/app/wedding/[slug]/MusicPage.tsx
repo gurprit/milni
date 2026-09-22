@@ -9,7 +9,7 @@ import dashboard from './dashboard.module.scss';
 import styles from './music.module.scss';
 
 const VIEW_MODE_KEY='milni:view-mode';
-const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live']] as const;
+const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live'],['invite','✉','Invitation']] as const;
 type SearchResult={id:number;title:string;artist:string;album:string;artworkUrl:string;trackUrl:string;genre:string};
 const starterSongs:SongRequest[]=['Mundian To Bach Ke · Panjabi MC','Nachde Ne Saare · Jasleen Royal','This Will Be · Natalie Cole'].map((song,i)=>({id:`song-${i}`,song,likes:12-i*3}));
 
