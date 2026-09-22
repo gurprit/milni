@@ -1,0 +1,1 @@
+import InvitationManager from './InvitationManager';import styles from './page.module.scss';export default function InvitationManagerPage(){return <InvitationManager/>}
