@@ -9,7 +9,7 @@ import dashboard from './dashboard.module.scss';
 import styles from './events.module.scss';
 
 const VIEW_MODE_KEY='milni:view-mode';
-const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live']] as const;
+const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live'],['invite','✉','Invitation']] as const;
 const eventTypes:EventType[]=['Celebration','Food','Tradition','Ceremony','Travel','Custom'];
 
 export default function EventsPage(){
