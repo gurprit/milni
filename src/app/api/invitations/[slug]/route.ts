@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import {NextResponse} from 'next/server';
-import {d1Execute,d1Query} from '../../../../../lib/d1';
-import {currentOrganiserSession} from '../../../../../lib/organiserSession';
+import {d1Execute,d1Query} from '../../../../lib/d1';
+import {currentOrganiserSession} from '../../../../lib/organiserSession';
 
 type Guest={id:string;name:string;guest_group:string|null;invite_token:string|null};
 export async function GET(request:Request,{params}:{params:Promise<{slug:string}>}){try{if(!await currentOrganiserSession())return NextResponse.json({ok:false,error:'Organiser sign-in required.'},{status:401});const{slug}=await params;try{await d1Execute('ALTER TABLE guests ADD COLUMN invite_token TEXT')}catch{}const wedding=(await d1Query<{id:string}>('SELECT id FROM weddings WHERE slug=? LIMIT 1',[slug]))[0];if(!wedding)return NextResponse.json({ok:false,error:'Wedding not found.'},{status:404});const guests=await d1Query<Guest>('SELECT id,name,guest_group,invite_token FROM guests WHERE wedding_id=? ORDER BY name',[wedding.id]);const origin=new URL(request.url).origin;return NextResponse.json({ok:true,guests:guests.map(g=>({id:g.id,name:g.name,group:g.guest_group??'',hasToken:!!g.invite_token,link:g.invite_token?`${origin}/invite/${slug}?token=${encodeURIComponent(g.invite_token)}`:null}))})}catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Could not load invitations.'},{status:500})}}
