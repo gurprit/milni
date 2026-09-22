@@ -8,7 +8,7 @@ import styles from './photos.module.scss';
 
 const VIEW_MODE_KEY='milni:view-mode';
 const LOCAL_PHOTOS_KEY='milni:photo-previews';
-const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live']] as const;
+const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live'],['invite','✉','Invitation']] as const;
 type PreviewStore=Record<string,string>;
 
 export default function PhotosPage(){
