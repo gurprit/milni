@@ -12,7 +12,8 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
  try{
   const{slug}=await params;
   try{const {d1Execute}=await import('../../../../lib/d1');await d1Execute('ALTER TABLE events ADD COLUMN rsvp_enabled INTEGER NOT NULL DEFAULT 1');try{await d1Execute("ALTER TABLE events ADD COLUMN invite_mode TEXT NOT NULL DEFAULT 'Everyone'")}catch{}try{await d1Execute('ALTER TABLE events ADD COLUMN invited_groups TEXT')}catch{}try{await d1Execute('ALTER TABLE events ADD COLUMN invited_guest_ids TEXT')}catch{}}catch{}
-  try{const {d1Execute}=await import('../../../../lib/d1');await d1Execute('ALTER TABLE weddings ADD COLUMN invite_hero_key TEXT')}catch{}\n  const weddings=await d1Query<WeddingRow>('SELECT id,slug,partner_one,partner_two,title,city,start_date,end_date,invite_hero_key FROM weddings WHERE slug=? LIMIT 1',[slug]);
+  try{const {d1Execute}=await import('../../../../lib/d1');await d1Execute('ALTER TABLE weddings ADD COLUMN invite_hero_key TEXT')}catch{}
+  const weddings=await d1Query<WeddingRow>('SELECT id,slug,partner_one,partner_two,title,city,start_date,end_date,invite_hero_key FROM weddings WHERE slug=? LIMIT 1',[slug]);
   const wedding=weddings[0];
   if(!wedding)return NextResponse.json({ok:false,error:'Wedding not found'},{status:404});
   const organiser=await currentOrganiserSession();
