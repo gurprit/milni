@@ -9,7 +9,7 @@ import TravelManager from './TravelManager';
 import styles from './dashboard.module.scss';
 
 const VIEW_MODE_KEY='milni:view-mode';
-const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live']] as const;
+const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live'],['invite','✉','Invitation']] as const;
 
 export default function TravelPage(){
  const [draft,setDraft]=useState<WeddingDraft>(emptyDraft);
