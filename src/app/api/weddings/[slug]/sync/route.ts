@@ -14,7 +14,8 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{slug:st
   if(!organiser)return NextResponse.json({ok:false,error:'Organiser sign-in required.'},{status:401});
   const{slug}=await params;
   const draft=await request.json() as Draft;
-  try{await d1Execute('ALTER TABLE weddings ADD COLUMN invite_hero_key TEXT')}catch{}\n  try{await d1Execute('ALTER TABLE events ADD COLUMN rsvp_enabled INTEGER NOT NULL DEFAULT 1')}catch{}
+  try{await d1Execute('ALTER TABLE weddings ADD COLUMN invite_hero_key TEXT')}catch{}
+  try{await d1Execute('ALTER TABLE events ADD COLUMN rsvp_enabled INTEGER NOT NULL DEFAULT 1')}catch{}
   try{await d1Execute("ALTER TABLE events ADD COLUMN invite_mode TEXT NOT NULL DEFAULT 'Everyone'")}catch{}
   try{await d1Execute('ALTER TABLE events ADD COLUMN invited_groups TEXT')}catch{}
   try{await d1Execute('ALTER TABLE events ADD COLUMN invited_guest_ids TEXT')}catch{}
