@@ -33,6 +33,14 @@ function applicationServerKey(value:string){
  return bytes;
 }
 
+function subscriptionKeys(subscription:PushSubscription){
+ const json=subscription.toJSON();
+ const p256dh=json.keys?.p256dh||(subscription.getKey('p256dh')?base64UrlFromBuffer(subscription.getKey('p256dh') as ArrayBuffer):'');
+ const auth=json.keys?.auth||(subscription.getKey('auth')?base64UrlFromBuffer(subscription.getKey('auth') as ArrayBuffer):'');
+ if(!p256dh||!auth)throw new Error('The browser did not provide push encryption keys.');
+ return {p256dh,auth};
+}
+
 function timeLabel(value:string){
  const date=new Date(value);
  if(Number.isNaN(date.getTime()))return '';
@@ -78,6 +86,17 @@ export default function NotificationBell({base}:{base:string}){
   }catch{}
  },[slug]);
 
+ const storeSubscription=useCallback(async(subscription:PushSubscription)=>{
+  const keys=subscriptionKeys(subscription);
+  const response=await fetch('/api/push/subscribe',{
+   method:'POST',
+   headers:{'content-type':'application/json'},
+   body:JSON.stringify({slug,subscription:{endpoint:subscription.endpoint,keys}}),
+  });
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||'Could not save this push subscription.');
+ },[slug]);
+
  const syncPushState=useCallback(async()=>{
   if(typeof window==='undefined'||!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
    setPushState('unsupported');
@@ -94,11 +113,14 @@ export default function NotificationBell({base}:{base:string}){
   try{
    const registration=await getRegistration();
    const subscription=await registration.pushManager.getSubscription();
-   setPushState(subscription&&Notification.permission==='granted'?'enabled':'disabled');
+   if(subscription&&Notification.permission==='granted'){
+    await storeSubscription(subscription);
+    setPushState('enabled');
+   }else setPushState('disabled');
   }catch{
    setPushState('error');
   }
- },[]);
+ },[storeSubscription]);
 
  useEffect(()=>{
   void load();
@@ -150,16 +172,7 @@ export default function NotificationBell({base}:{base:string}){
      applicationServerKey:applicationServerKey(keyData.publicKey),
     });
    }
-   const json=subscription.toJSON();
-   const p256dh=json.keys?.p256dh||base64UrlFromBuffer(subscription.getKey('p256dh') as ArrayBuffer);
-   const auth=json.keys?.auth||base64UrlFromBuffer(subscription.getKey('auth') as ArrayBuffer);
-   const response=await fetch('/api/push/subscribe',{
-    method:'POST',
-    headers:{'content-type':'application/json'},
-    body:JSON.stringify({slug,subscription:{endpoint:subscription.endpoint,keys:{p256dh,auth}}}),
-   });
-   const data=await response.json();
-   if(!response.ok)throw new Error(data.error||'Could not enable notifications.');
+   await storeSubscription(subscription);
    setPushState('enabled');
    setPushMessage('You’ll now get wedding updates even when MILNI is closed.');
   }catch(error){
