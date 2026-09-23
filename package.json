@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "vinext build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:next": "next build",
+    "deploy": "vinext build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
