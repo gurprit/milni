@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { d1Execute, d1Query } from '../../../../lib/d1';
 import { currentOrganiserSession } from '../../../../lib/organiserSession';
+import { organiserCanAccessWedding } from '../../../../lib/organiserAccounts';
 
 type WeddingRow={id:string};
 type UpdateRow={id:string;title:string;message:string;kind:string;created_at:string};
@@ -33,8 +34,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
 
 export async function POST(request:Request,{params}:{params:Promise<{slug:string}>}){
  try{
-  if(!await currentOrganiserSession())return NextResponse.json({error:'Organiser sign-in required'},{status:401});
-  const {slug}=await params; const body=await request.json() as {title?:string;message?:string;kind?:string};
+  const {slug}=await params; const organiser=await currentOrganiserSession(); if(!await organiserCanAccessWedding(organiser,slug))return NextResponse.json({error:'Organiser access required'},{status:403}); const body=await request.json() as {title?:string;message?:string;kind?:string};
   const title=String(body.title||'').trim().slice(0,80); const message=String(body.message||'').trim().slice(0,1000);
   const kind=body.kind==='urgent'?'urgent':'update';
   if(!title||!message)return NextResponse.json({error:'Add a title and message'},{status:400});
@@ -47,8 +47,7 @@ export async function POST(request:Request,{params}:{params:Promise<{slug:string
 
 export async function DELETE(request:Request,{params}:{params:Promise<{slug:string}>}){
  try{
-  if(!await currentOrganiserSession())return NextResponse.json({error:'Organiser sign-in required'},{status:401});
-  const {slug}=await params; const body=await request.json() as {id?:string}; if(!body.id)return NextResponse.json({error:'Update id required'},{status:400});
+  const {slug}=await params; const organiser=await currentOrganiserSession(); if(!await organiserCanAccessWedding(organiser,slug))return NextResponse.json({error:'Organiser access required'},{status:403}); const body=await request.json() as {id?:string}; if(!body.id)return NextResponse.json({error:'Update id required'},{status:400});
   await ensureTable(); const id=await weddingId(slug); if(!id)return NextResponse.json({error:'Wedding not found'},{status:404});
   await d1Execute('DELETE FROM live_updates WHERE id = ? AND wedding_id = ?',[body.id,id]);
   return NextResponse.json({ok:true});
