@@ -29,6 +29,12 @@ export async function ensureOrganiserSchema(){
 const encoder=new TextEncoder();
 const PASSWORD_ITERATIONS=10000;
 
+function arrayBuffer(value:Uint8Array):ArrayBuffer{
+ const copy=new Uint8Array(value.byteLength);
+ copy.set(value);
+ return copy.buffer;
+}
+
 async function passwordMaterial(password:string){
  const pepper=process.env.MILNI_SESSION_SECRET||process.env.CLOUDFLARE_D1_API_TOKEN||'';
  if(!pepper)throw new Error('MILNI password pepper is not configured');
@@ -43,8 +49,8 @@ function randomBase64Url(bytes:number){
 }
 
 async function derivePassword(material:Uint8Array,salt:Uint8Array,iterations:number){
- const key=await crypto.subtle.importKey('raw',material,'PBKDF2',false,['deriveBits']);
- const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations},key,256);
+ const key=await crypto.subtle.importKey('raw',arrayBuffer(material),'PBKDF2',false,['deriveBits']);
+ const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:arrayBuffer(salt),iterations},key,256);
  return new Uint8Array(bits);
 }
 

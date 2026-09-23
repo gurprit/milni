@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { d1Execute, d1Query } from '../../../../lib/d1';
 import { currentOrganiserSession } from '../../../../lib/organiserSession';
 import { organiserCanAccessWedding } from '../../../../lib/organiserAccounts';
+import { publishWeddingNotification } from '../../../../lib/notifications';
 
 type WeddingRow={id:string};
 type UpdateRow={id:string;title:string;message:string;kind:string;created_at:string};
@@ -41,6 +42,7 @@ export async function POST(request:Request,{params}:{params:Promise<{slug:string
   await ensureTable(); const id=await weddingId(slug); if(!id)return NextResponse.json({error:'Wedding not found'},{status:404});
   const updateId=crypto.randomUUID(); const createdAt=new Date().toISOString();
   await d1Execute('INSERT INTO live_updates (id,wedding_id,title,message,kind,created_at) VALUES (?,?,?,?,?,?)',[updateId,id,title,message,kind,createdAt]);
+  try{await publishWeddingNotification({weddingId:id,type:'live',title,message,url:`/wedding/${encodeURIComponent(slug)}/live`,priority:kind==='urgent'?'urgent':'normal',sourceId:updateId})}catch(notificationError){console.error('Live update notification failed',notificationError)}
   return NextResponse.json({ok:true,update:{id:updateId,title,message,kind,created_at:createdAt}});
  }catch(error){console.error('Live updates POST failed',error);return NextResponse.json({error:'Could not post update'},{status:500})}
 }
