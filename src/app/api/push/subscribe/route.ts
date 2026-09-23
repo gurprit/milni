@@ -38,7 +38,7 @@ export async function DELETE(request:Request){
   if(!session)return NextResponse.json({ok:true});
   const body=await request.json() as {endpoint?:string};
   const endpoint=String(body.endpoint||'');
-  if(endpoint)await removePushSubscription(endpoint,session.guestId);
+  if(endpoint)await removePushSubscription(endpoint);
   return NextResponse.json({ok:true});
  }catch(error){
   console.error('Push unsubscribe failed',error);
