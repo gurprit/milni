@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "vinext build",
+    "build": "sh -c 'set -a; [ ! -f .env.local ] || . ./.env.local; set +a; vinext build'",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "build:next": "next build",
-    "deploy": "vinext build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
