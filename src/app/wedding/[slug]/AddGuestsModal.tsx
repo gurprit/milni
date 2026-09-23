@@ -8,7 +8,6 @@ type Mode='single'|'household'|'import';
 type InviteLink={id:string;name:string;link:string};
 
 const SIDES:GuestSide[]=['Partner one','Partner two','Both'];
-const STATUSES:GuestStatus[]=['Going','Awaiting RSVP','Not going'];
 
 function makeId(index=0){
  const suffix=typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.randomUUID().slice(0,8):`${Date.now()}-${index}`;
