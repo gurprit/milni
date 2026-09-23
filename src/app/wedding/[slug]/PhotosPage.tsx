@@ -2,6 +2,7 @@
 import {ChangeEvent,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useParams} from 'next/navigation';
+import WeddingSidebar from './WeddingSidebar';
 import {PhotoAlbum,WeddingDraft,WeddingPhoto,emptyDraft,formatDateRange,readWeddingDraft,writeWeddingDraft} from '../../../lib/weddingDraft';
 import dashboard from './dashboard.module.scss';
 import styles from './photos.module.scss';
