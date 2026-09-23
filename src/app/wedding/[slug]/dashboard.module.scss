@@ -42,7 +42,8 @@ button.eventSummaryCounts{border:0;background:transparent;padding:6px 4px;cursor
   .mobileMenuOpen .menuToggle span:nth-child(2){opacity:0}
   .mobileMenuOpen .menuToggle span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
   .mobileMenuPanel{position:absolute;left:0;right:0;top:72px;display:block;max-height:0;overflow:hidden;background:rgba(0,72,62,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 18px 35px rgba(0,30,25,.2);opacity:0;visibility:hidden;pointer-events:none;transition:max-height .28s ease,opacity .18s ease,visibility .18s ease;padding:0 18px}
-  .mobileMenuOpen .mobileMenuPanel{max-height:680px;opacity:1;visibility:visible;pointer-events:auto;padding-bottom:18px}
+  .mobileMenuPanel[data-open="false"]{display:none!important;max-height:0!important;padding:0 18px!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+  .mobileMenuPanel[data-open="true"]{display:block!important;max-height:680px;opacity:1;visibility:visible;pointer-events:auto;padding-bottom:18px}
   .sidebar nav{grid-template-columns:1fr 1fr;margin-top:8px;gap:5px}
   .sidebar nav a{justify-content:flex-start;padding:12px 14px}
   .sidebar nav span{display:inline}
