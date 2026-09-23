@@ -1,8 +1,8 @@
 import {NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
-import {d1Execute,d1Query} from '../../../../../lib/d1';
-import {ensureOrganiserSchema,hashOrganiserPassword} from '../../../../../lib/organiserAccounts';
-import {encodeOrganiserSession,ORGANISER_COOKIE} from '../../../../../lib/organiserSession';
+import {d1Execute,d1Query} from '../../../../lib/d1';
+import {ensureOrganiserSchema,hashOrganiserPassword} from '../../../../lib/organiserAccounts';
+import {encodeOrganiserSession,ORGANISER_COOKIE} from '../../../../lib/organiserSession';
 
 type ClaimRow={user_id:string;email:string;name:string;password_hash:string|null;wedding_id:string;slug:string;partner_one:string;partner_two:string;status:string};
 
