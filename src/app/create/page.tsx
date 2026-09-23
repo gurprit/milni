@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import {FormEvent,useEffect,useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {emptyDraft,readWeddingDraft,WeddingDraft,weddingSlug,writeWeddingDraft} from '@/lib/weddingDraft';
+import {emptyDraft,readWeddingDraft,WeddingDraft,writeWeddingDraft} from '@/lib/weddingDraft';
 import styles from './page.module.scss';
 const steps=['Wedding details','Traditions','Schedule','Invite'];
 export default function CreateWeddingPage(){
