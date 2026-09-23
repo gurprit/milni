@@ -27,7 +27,7 @@ export async function POST(request:Request){
 
  try{
   const account=await findOrganiserByEmail(normalisedEmail);
-  if(account?.password_hash&&verifyOrganiserPassword(suppliedPassword,account.password_hash)){
+  if(account?.password_hash&&await verifyOrganiserPassword(suppliedPassword,account.password_hash)){
    const requestedSlug=String(slug||'').trim();
    if(requestedSlug&&!await organiserCanAccessWedding({userId:account.id},requestedSlug))return NextResponse.json({ok:false,error:'This organiser account does not have access to that wedding.'},{status:403});
    const expiresAt=Date.now()+1000*60*60*24*30;
