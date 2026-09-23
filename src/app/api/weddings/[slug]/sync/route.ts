@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {d1Execute,d1Query} from '../../../../../lib/d1';
 import {currentOrganiserSession} from '../../../../../lib/organiserSession';
+import {organiserCanAccessWedding} from '../../../../../lib/organiserAccounts';
 
 type Event={id:string;start:string;end:string;name:string;description:string;type:string;location?:string;rsvpEnabled?:boolean;inviteMode?:string;invitedGroups?:string[];invitedGuestIds?:string[]};
 type Day={id:string;label:string;date:string;events:Event[]};
@@ -11,8 +12,8 @@ type Draft={partnerOne:string;partnerTwo:string;title:string;city:string;startDa
 export async function POST(request:NextRequest,{params}:{params:Promise<{slug:string}>}){
  try{
   const organiser=await currentOrganiserSession();
-  if(!organiser)return NextResponse.json({ok:false,error:'Organiser sign-in required.'},{status:401});
   const{slug}=await params;
+  if(!await organiserCanAccessWedding(organiser,slug))return NextResponse.json({ok:false,error:'Organiser access required for this wedding.'},{status:403});
   const draft=await request.json() as Draft;
   try{await d1Execute('ALTER TABLE weddings ADD COLUMN invite_hero_key TEXT')}catch{}
   try{await d1Execute('ALTER TABLE events ADD COLUMN rsvp_enabled INTEGER NOT NULL DEFAULT 1')}catch{}
