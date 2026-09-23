@@ -40,8 +40,12 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{slug:st
   for(const day of draft.schedule??[])for(const event of day.events){await d1Execute(`INSERT INTO events (id,wedding_id,day_label,event_date,name,description,event_type,start_time,end_time,location,location_name,location_lat,location_lng,location_place_id,rsvp_enabled,invite_mode,invited_groups,invited_guest_ids,sort_order,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET day_label=excluded.day_label,event_date=excluded.event_date,name=excluded.name,description=excluded.description,event_type=excluded.event_type,start_time=excluded.start_time,end_time=excluded.end_time,location=excluded.location,location_name=excluded.location_name,location_lat=excluded.location_lat,location_lng=excluded.location_lng,location_place_id=excluded.location_place_id,rsvp_enabled=excluded.rsvp_enabled,invite_mode=excluded.invite_mode,invited_groups=excluded.invited_groups,invited_guest_ids=excluded.invited_guest_ids,sort_order=excluded.sort_order,updated_at=CURRENT_TIMESTAMP`,[event.id,weddingId,day.label,day.date,event.name,event.description,event.type,event.start,event.end,event.location??null,event.locationInfo?.name??null,event.locationInfo?.lat??null,event.locationInfo?.lng??null,event.locationInfo?.placeId??null,event.rsvpEnabled===false?0:1,event.inviteMode??'Everyone',JSON.stringify(event.invitedGroups??[]),JSON.stringify(event.invitedGuestIds??[]),order++]);}
   const resolvedAlbums=[...(draft.photoAlbums??[])];
   for(const day of draft.schedule??[])for(const event of day.events){
-   if(!resolvedAlbums.some(album=>album.eventId===event.id)){
-    resolvedAlbums.push({id:`album-${event.id}`,name:event.name,description:`Photos from ${event.name}`,eventId:event.id});
+   const generatedId=`album-${event.id}`;
+   const existingIndex=resolvedAlbums.findIndex(album=>album.eventId===event.id);
+   if(existingIndex<0){
+    resolvedAlbums.push({id:generatedId,name:event.name,description:`Photos from ${event.name}`,eventId:event.id});
+   }else if(resolvedAlbums[existingIndex].id===generatedId){
+    resolvedAlbums[existingIndex]={...resolvedAlbums[existingIndex],name:event.name,description:`Photos from ${event.name}`,eventId:event.id};
    }
   }
   const incomingAlbumIds=resolvedAlbums.map(album=>album.id);
