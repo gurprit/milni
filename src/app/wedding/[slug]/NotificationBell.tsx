@@ -61,8 +61,25 @@ function isStandalone(){
  return window.matchMedia('(display-mode: standalone)').matches||navigatorWithStandalone.standalone===true;
 }
 
+let registrationPromise:Promise<ServiceWorkerRegistration>|null=null;
+
 async function getRegistration(){
- return navigator.serviceWorker.register('/sw.js',{scope:'/'});
+ const existing=await navigator.serviceWorker.getRegistration('/');
+ if(existing)return existing;
+ if(!registrationPromise){
+  registrationPromise=navigator.serviceWorker.register('/sw.js',{scope:'/'})
+   .catch(async error=>{
+    if(error instanceof DOMException&&error.name==='AbortError'){
+     await new Promise(resolve=>window.setTimeout(resolve,250));
+     const recovered=await navigator.serviceWorker.getRegistration('/');
+     if(recovered)return recovered;
+     return navigator.serviceWorker.register('/sw.js',{scope:'/'});
+    }
+    throw error;
+   })
+   .finally(()=>{registrationPromise=null});
+ }
+ return registrationPromise;
 }
 
 export default function NotificationBell({base}:{base:string}){
@@ -111,7 +128,14 @@ export default function NotificationBell({base}:{base:string}){
    return;
   }
   try{
-   const registration=await getRegistration();
+   let registration=await navigator.serviceWorker.getRegistration('/');
+   if(!registration){
+    if(Notification.permission!=='granted'){
+     setPushState('disabled');
+     return;
+    }
+    registration=await getRegistration();
+   }
    const subscription=await registration.pushManager.getSubscription();
    if(subscription&&Notification.permission==='granted'){
     await storeSubscription(subscription);
