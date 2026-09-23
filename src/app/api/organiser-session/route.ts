@@ -21,13 +21,15 @@ export async function GET(request:Request){
 }
 
 export async function POST(request:Request){
- const{email,password}=await request.json();
+ const{email,password,slug}=await request.json();
  const normalisedEmail=String(email||'').trim().toLowerCase();
  const suppliedPassword=String(password||'');
 
  try{
   const account=await findOrganiserByEmail(normalisedEmail);
   if(account?.password_hash&&verifyOrganiserPassword(suppliedPassword,account.password_hash)){
+   const requestedSlug=String(slug||'').trim();
+   if(requestedSlug&&!await organiserCanAccessWedding({userId:account.id},requestedSlug))return NextResponse.json({ok:false,error:'This organiser account does not have access to that wedding.'},{status:403});
    const expiresAt=Date.now()+1000*60*60*24*30;
    (await cookies()).set(ORGANISER_COOKIE,encodeOrganiserSession({email:account.email,userId:account.id,expiresAt}),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',expires:new Date(expiresAt)});
    return NextResponse.json({ok:true,organiser:{email:account.email,userId:account.id}});
