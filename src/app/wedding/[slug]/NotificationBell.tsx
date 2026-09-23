@@ -182,25 +182,7 @@ export default function NotificationBell({base}:{base:string}){
   }
  };
 
- const disablePush=async()=>{
-  setPushMessage('');
-  try{
-   const registration=await navigator.serviceWorker.ready;
-   const subscription=await registration.pushManager.getSubscription();
-   if(subscription){
-    await fetch('/api/push/subscribe',{
-     method:'DELETE',
-     headers:{'content-type':'application/json'},
-     body:JSON.stringify({endpoint:subscription.endpoint}),
-    });
-    await subscription.unsubscribe();
-   }
-   setPushState('disabled');
-   setPushMessage('Push notifications are off on this device.');
-  }catch{
-   setPushMessage('Could not turn notifications off. Try again.');
-  }
- };
+
 
  if(!eligible)return null;
 
@@ -215,7 +197,7 @@ export default function NotificationBell({base}:{base:string}){
     <button type="button" className={styles.notificationClose} onClick={()=>setOpen(false)} aria-label="Close notifications"><X size={17}/></button>
    </header>
 
-   <div className={styles.pushCard}>
+   {pushState!=='enabled'&&<div className={styles.pushCard}>
     {pushState==='install'?<>
      <b>📱 Add MILNI to your Home Screen</b>
      <p>On iPhone and iPad, install MILNI from Safari’s Share menu first. Open the Home Screen app, then tap the bell to turn on wedding notifications.</p>
@@ -225,17 +207,13 @@ export default function NotificationBell({base}:{base:string}){
     </>:pushState==='denied'?<>
      <b>Push notifications are blocked</b>
      <p>Allow notifications for MILNI in your browser or device settings, then come back here.</p>
-    </>:pushState==='enabled'?<>
-     <div className={styles.pushStatus}><span/> <b>Push notifications are on</b></div>
-     <p>Live wedding updates can now reach this device when MILNI isn’t open.</p>
-     <button type="button" className={styles.pushTextButton} onClick={disablePush}>Turn off on this device</button>
     </>:<>
      <b>Don’t miss a wedding update</b>
      <p>Get live announcements on this device, including timing and transport changes.</p>
      <button type="button" className={styles.pushEnable} disabled={pushState==='enabling'} onClick={enablePush}>{pushState==='enabling'?'Turning on…':'Turn on push notifications'}</button>
     </>}
     {pushMessage&&<small className={styles.pushMessage}>{pushMessage}</small>}
-   </div>
+   </div>}
 
    <div className={styles.notificationList}>
     {items.length===0?<div className={styles.notificationEmpty}><b>All quiet for now.</b><span>New organiser announcements will collect here.</span></div>:items.map(item=>
