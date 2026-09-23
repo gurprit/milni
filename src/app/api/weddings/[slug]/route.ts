@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {d1Query} from '../../../../lib/d1';
 import {currentOrganiserSession} from '../../../../lib/organiserSession';
+import {organiserCanAccessWedding} from '../../../../lib/organiserAccounts';
 import {currentGuestSession} from '../../../../lib/guestSession';
 
 type WeddingRow={id:string;slug:string;partner_one:string;partner_two:string;title:string|null;city:string|null;start_date:string|null;end_date:string|null;invite_hero_key?:string|null};
@@ -16,9 +17,10 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
   const weddings=await d1Query<WeddingRow>('SELECT id,slug,partner_one,partner_two,title,city,start_date,end_date,invite_hero_key FROM weddings WHERE slug=? LIMIT 1',[slug]);
   const wedding=weddings[0];
   if(!wedding)return NextResponse.json({ok:false,error:'Wedding not found'},{status:404});
-  const organiser=await currentOrganiserSession();
+  const organiserSession=await currentOrganiserSession();
+  const organiser=await organiserCanAccessWedding(organiserSession,slug);
   const guestSession=await currentGuestSession();
-  const canSeePrivateGuests=Boolean(organiser);
+  const canSeePrivateGuests=organiser;
   const[events,albums,guests]=await Promise.all([
    d1Query<EventRow>('SELECT id,day_label,event_date,name,description,event_type,start_time,end_time,location,rsvp_enabled,invite_mode,invited_groups,invited_guest_ids,sort_order FROM events WHERE wedding_id=? ORDER BY sort_order,event_date,start_time',[wedding.id]),
    d1Query<AlbumRow>('SELECT id,event_id,name,description,cover_object_key FROM photo_albums WHERE wedding_id=? ORDER BY created_at,id',[wedding.id]),
