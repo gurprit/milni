@@ -127,8 +127,9 @@ export default function PhotosPage(){
     if(!response.ok)throw new Error(result.error||'Upload failed');
     const photo:WeddingPhoto={id:result.key,albumId,eventId,url:result.url,caption:caption.trim(),uploadedBy:uploaderName,createdAt:new Date().toISOString()};
     const metadata=await fetch(`/api/weddings/${encodeURIComponent(slug)}/photos`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:photo.id,albumId:photo.albumId,eventId:photo.eventId,objectKey:result.key,caption:photo.caption,uploadedBy:photo.uploadedBy})});
-    if(!metadata.ok){await fetch('/api/media',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:result.key})}).catch(()=>{});throw new Error((await metadata.json()).error||'Could not save photo metadata')}
-    created.push(photo);
+    const metadataResult=await metadata.json();
+    if(!metadata.ok){await fetch('/api/media',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:result.key})}).catch(()=>{});throw new Error(metadataResult.error||'Could not save photo metadata')}
+    created.push({...photo,uploadedBy:metadataResult.uploadedBy||photo.uploadedBy});
    }
    savePhotos([...created,...photos]);
    setCaption('');
