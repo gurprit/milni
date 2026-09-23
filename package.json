@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.57.3",
+    "@vitejs/plugin-rsc": "^0.5.10",
     "@types/node": "latest",
     "@types/qrcode": "latest",
     "@types/react": "latest",
