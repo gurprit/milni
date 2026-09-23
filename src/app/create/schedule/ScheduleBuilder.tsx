@@ -5,29 +5,63 @@ import Link from 'next/link';
 import styles from './page.module.scss';
 import { EventType, WeddingDay, WeddingEvent, readWeddingDraft, weddingSlug, writeWeddingDraft } from '../../../lib/weddingDraft';
 
-const initialDays:WeddingDay[]=[
-{id:'day-1',label:'Day 1',date:'Thursday',events:[
-{id:'haldi',start:'11:00',end:'12:30',name:'Haldi',description:'A joyful start with colour, blessings and plenty of smiles.',type:'Celebration'},
-{id:'lunch',start:'13:00',end:'14:30',name:'Lunch',description:'Time to eat, catch up and settle into the weekend.',type:'Food'},
-{id:'sangeet',start:'19:00',end:'23:00',name:'Sangeet',description:'Music, dancing and performances with family and friends.',type:'Celebration'}]},
-{id:'day-2',label:'Day 2',date:'Friday',events:[
-{id:'baraat',start:'11:30',end:'12:00',name:'Baraat',description:"The groom's procession and arrival.",type:'Tradition'},
-{id:'milni',start:'12:15',end:'12:45',name:'Milni',description:'A meeting and welcome between the families.',type:'Tradition'},
-{id:'anand-karaj',start:'13:00',end:'14:30',name:'Anand Karaj',description:'The Sikh wedding ceremony.',type:'Ceremony'},
-{id:'reception',start:'19:30',end:'00:30',name:'Reception',description:'Dinner, dancing and celebrations.',type:'Celebration'}]},
-{id:'day-3',label:'Day 3',date:'Saturday',events:[
-{id:'brunch',start:'11:00',end:'13:00',name:'Farewell brunch',description:'One last meal together before everyone heads home.',type:'Food'}]}];
+const templates:Record<string,WeddingDay[]>={
+'Punjabi Sikh':[
+{id:'sikh-day-1',label:'Day 1',date:'Thursday',events:[
+{id:'sikh-haldi',start:'11:00',end:'12:30',name:'Haldi',description:'A joyful pre-wedding gathering with turmeric, blessings and family.',type:'Tradition'},
+{id:'sikh-sangeet',start:'19:00',end:'23:00',name:'Sangeet',description:'An evening of music, dancing and performances with family and friends.',type:'Celebration'}]},
+{id:'sikh-day-2',label:'Day 2',date:'Friday',events:[
+{id:'sikh-baraat',start:'09:30',end:'10:00',name:'Baraat',description:"The groom's wedding procession and arrival.",type:'Tradition'},
+{id:'sikh-milni',start:'10:00',end:'10:30',name:'Milni',description:'A formal welcome and meeting between members of both families.',type:'Tradition'},
+{id:'sikh-anand-karaj',start:'11:00',end:'13:00',name:'Anand Karaj',description:'The Sikh wedding ceremony at the Gurdwara.',type:'Ceremony'},
+{id:'sikh-langar',start:'13:00',end:'14:30',name:'Langar',description:'A communal vegetarian meal following the ceremony.',type:'Food'},
+{id:'sikh-reception',start:'19:00',end:'00:30',name:'Reception',description:'Dinner, speeches, music and dancing.',type:'Celebration'}]},
+{id:'sikh-day-3',label:'Day 3',date:'Saturday',events:[{id:'sikh-brunch',start:'11:00',end:'13:00',name:'Farewell brunch',description:'A relaxed final meal with family and friends.',type:'Food'}]}],
+'Gujarati Hindu':[
+{id:'gujarati-day-1',label:'Day 1',date:'Thursday',events:[
+{id:'gujarati-pithi',start:'11:00',end:'12:30',name:'Pithi',description:'A pre-wedding turmeric ceremony with family and blessings.',type:'Tradition'},
+{id:'gujarati-garba',start:'19:00',end:'23:00',name:'Garba & Sangeet',description:'An evening of garba, music, dancing and family performances.',type:'Celebration'}]},
+{id:'gujarati-day-2',label:'Day 2',date:'Friday',events:[
+{id:'gujarati-baraat',start:'10:00',end:'10:45',name:'Baraat',description:"The groom's procession and arrival.",type:'Tradition'},
+{id:'gujarati-mandap',start:'11:00',end:'13:00',name:'Wedding ceremony',description:'The Hindu wedding ceremony beneath the mandap.',type:'Ceremony'},
+{id:'gujarati-lunch',start:'13:00',end:'14:30',name:'Wedding lunch',description:'A meal with family and guests after the ceremony.',type:'Food'},
+{id:'gujarati-reception',start:'19:00',end:'00:30',name:'Reception',description:'Dinner, speeches and dancing.',type:'Celebration'}]}],
+'South Indian':[
+{id:'south-day-1',label:'Day 1',date:'Thursday',events:[
+{id:'south-welcome',start:'18:00',end:'21:00',name:'Family welcome',description:'A relaxed gathering for the families and guests before the wedding day.',type:'Celebration'}]},
+{id:'south-day-2',label:'Day 2',date:'Friday',events:[
+{id:'south-ceremony',start:'09:00',end:'11:30',name:'Wedding ceremony',description:'The main wedding ceremony. Rename and adapt this to your family’s regional traditions.',type:'Ceremony'},
+{id:'south-lunch',start:'12:00',end:'14:00',name:'Wedding lunch',description:'A celebratory meal with family and guests.',type:'Food'},
+{id:'south-reception',start:'18:30',end:'23:30',name:'Reception',description:'An evening reception with dinner and celebrations.',type:'Celebration'}]}],
+'Muslim':[
+{id:'muslim-day-1',label:'Day 1',date:'Thursday',events:[
+{id:'muslim-mehndi',start:'18:00',end:'22:00',name:'Mehndi',description:'A pre-wedding celebration with family, music and henna.',type:'Celebration'}]},
+{id:'muslim-day-2',label:'Day 2',date:'Friday',events:[
+{id:'muslim-nikah',start:'12:00',end:'13:00',name:'Nikah',description:'The Islamic marriage ceremony.',type:'Ceremony'},
+{id:'muslim-meal',start:'13:30',end:'15:00',name:'Wedding meal',description:'A meal with family and guests following the ceremony.',type:'Food'}]},
+{id:'muslim-day-3',label:'Day 3',date:'Saturday',events:[
+{id:'muslim-walima',start:'18:30',end:'23:00',name:'Walima',description:'A wedding celebration and meal for family and guests.',type:'Celebration'}]}],
+};
+const neutralTemplate:WeddingDay[]=[{id:'custom-day-1',label:'Day 1',date:'Wedding day',events:[
+{id:'custom-ceremony',start:'12:00',end:'13:00',name:'Wedding ceremony',description:'Add the details of your ceremony.',type:'Ceremony'},
+{id:'custom-celebration',start:'18:00',end:'23:00',name:'Celebration',description:'Add your evening plans, meal or reception.',type:'Celebration'}]}];
+const cloneDays=(days:WeddingDay[])=>days.map(day=>({...day,events:day.events.map(event=>({...event}))}));
+const templateFor=(traditions:string[])=>{
+ const selected=traditions.filter(t=>templates[t]);
+ if(selected.length!==1)return cloneDays(neutralTemplate);
+ return cloneDays(templates[selected[0]]);
+};
 
 const newEvent=():WeddingEvent=>({id:`event-${Date.now()}`,start:'12:00',end:'13:00',name:'New event',description:'Add a helpful description for your guests.',type:'Custom'});
 const iconFor=(type:EventType)=>type==='Food'?'♨':type==='Ceremony'?'♡':type==='Tradition'?'✦':type==='Travel'?'▣':type==='Custom'?'＋':'♫';
 
 export default function ScheduleBuilder(){
- const [days,setDays]=useState<WeddingDay[]>(initialDays);
+ const [days,setDays]=useState<WeddingDay[]>(neutralTemplate);
  const [hydrated,setHydrated]=useState(false);
  const [traditions,setTraditions]=useState<string[]>([]);
  const [editing,setEditing]=useState<{dayId:string,event:WeddingEvent}|null>(null);
  const [menu,setMenu]=useState<string|null>(null);
- useEffect(()=>{const draft=readWeddingDraft();setTraditions(draft.traditions||[]);if(draft.schedule?.length)setDays(draft.schedule);setHydrated(true)},[]);
+ useEffect(()=>{const draft=readWeddingDraft();const selected=draft.traditions||[];setTraditions(selected);setDays(draft.schedule?.length?draft.schedule:templateFor(selected));setHydrated(true)},[]);
  useEffect(()=>{if(!hydrated)return;writeWeddingDraft({schedule:days});const next={...readWeddingDraft(),schedule:days};const slug=weddingSlug(next);fetch(`/api/weddings/${encodeURIComponent(slug)}/sync`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(next)}).catch(error=>console.error('D1 schedule save failed',error))},[days,hydrated]);
  const events=useMemo(()=>days.flatMap(d=>d.events),[days]); const first=events[0],last=events.at(-1);
  const add=(dayId=days[0]?.id)=>{if(dayId)setEditing({dayId,event:newEvent()})};
