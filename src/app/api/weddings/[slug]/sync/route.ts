@@ -38,10 +38,16 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{slug:st
   for(const existing of existingEvents)if(!incomingEventIds.includes(existing.id))await d1Execute('DELETE FROM events WHERE id=? AND wedding_id=?',[existing.id,weddingId]);
   let order=0;
   for(const day of draft.schedule??[])for(const event of day.events){await d1Execute(`INSERT INTO events (id,wedding_id,day_label,event_date,name,description,event_type,start_time,end_time,location,location_name,location_lat,location_lng,location_place_id,rsvp_enabled,invite_mode,invited_groups,invited_guest_ids,sort_order,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET day_label=excluded.day_label,event_date=excluded.event_date,name=excluded.name,description=excluded.description,event_type=excluded.event_type,start_time=excluded.start_time,end_time=excluded.end_time,location=excluded.location,location_name=excluded.location_name,location_lat=excluded.location_lat,location_lng=excluded.location_lng,location_place_id=excluded.location_place_id,rsvp_enabled=excluded.rsvp_enabled,invite_mode=excluded.invite_mode,invited_groups=excluded.invited_groups,invited_guest_ids=excluded.invited_guest_ids,sort_order=excluded.sort_order,updated_at=CURRENT_TIMESTAMP`,[event.id,weddingId,day.label,day.date,event.name,event.description,event.type,event.start,event.end,event.location??null,event.locationInfo?.name??null,event.locationInfo?.lat??null,event.locationInfo?.lng??null,event.locationInfo?.placeId??null,event.rsvpEnabled===false?0:1,event.inviteMode??'Everyone',JSON.stringify(event.invitedGroups??[]),JSON.stringify(event.invitedGuestIds??[]),order++]);}
-  const incomingAlbumIds=(draft.photoAlbums??[]).map(album=>album.id);
+  const resolvedAlbums=[...(draft.photoAlbums??[])];
+  for(const day of draft.schedule??[])for(const event of day.events){
+   if(!resolvedAlbums.some(album=>album.eventId===event.id)){
+    resolvedAlbums.push({id:`album-${event.id}`,name:event.name,description:`Photos from ${event.name}`,eventId:event.id});
+   }
+  }
+  const incomingAlbumIds=resolvedAlbums.map(album=>album.id);
   const existingAlbums=await d1Query<{id:string}>('SELECT id FROM photo_albums WHERE wedding_id=?',[weddingId]);
   for(const existing of existingAlbums)if(!incomingAlbumIds.includes(existing.id))await d1Execute('DELETE FROM photo_albums WHERE id=? AND wedding_id=?',[existing.id,weddingId]);
-  for(const album of draft.photoAlbums??[])await d1Execute(`INSERT INTO photo_albums (id,wedding_id,event_id,name,description,updated_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET event_id=excluded.event_id,name=excluded.name,description=excluded.description,updated_at=CURRENT_TIMESTAMP`,[album.id,weddingId,album.eventId??null,album.name,album.description]);
-  return NextResponse.json({ok:true,weddingId,events:order,albums:(draft.photoAlbums??[]).length,guests:(draft.guests??[]).length});
+  for(const album of resolvedAlbums)await d1Execute(`INSERT INTO photo_albums (id,wedding_id,event_id,name,description,updated_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET event_id=excluded.event_id,name=excluded.name,description=excluded.description,updated_at=CURRENT_TIMESTAMP`,[album.id,weddingId,album.eventId??null,album.name,album.description]);
+  return NextResponse.json({ok:true,weddingId,events:order,albums:resolvedAlbums.length,guests:(draft.guests??[]).length});
  }catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'Wedding sync failed'},{status:500})}
 }
