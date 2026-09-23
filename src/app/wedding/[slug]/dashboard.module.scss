@@ -83,3 +83,109 @@ button.eventSummaryCounts{border:0;background:transparent;padding:6px 4px;cursor
   .eventLocationMap{height:180px}
   .locationPreviewHead strong{font-size:16px}
 }
+
+
+/* Mobile schedule polish */
+.scheduleStack{min-width:0}
+
+@media(max-width:900px){
+  .content{width:100%;max-width:100vw;overflow-x:hidden}
+  .pageHero,.pageBody{width:100%;box-sizing:border-box}
+  .scheduleStack,
+  .scheduleStack>.card,
+  .scheduleStack>.editorIntro,
+  .scheduleStack .dayEditor,
+  .scheduleStack .dayEditor>div,
+  .scheduleStack .organiserEvent,
+  .scheduleStack .eventSummaryRow,
+  .scheduleStack .eventEditor,
+  .scheduleStack .eventEditorTop,
+  .scheduleStack .eventEditorMain,
+  .scheduleStack .eventEditorLeft,
+  .scheduleStack .inviteEditor,
+  .scheduleStack .attendanceSummary{min-width:0;max-width:100%;box-sizing:border-box}
+
+  /* The organiser strip should belong to the page, not permanently cover it. */
+  .organiserBar{position:relative;top:auto}
+}
+
+@media(max-width:560px){
+  .organiserBar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:6px 10px;
+    padding:8px 12px
+  }
+  .organiserBar span{display:none}
+  .organiserBar button{
+    padding:7px 9px!important;
+    font-size:10px!important;
+    white-space:nowrap
+  }
+
+  .scheduleStack{gap:14px}
+  .scheduleStack>.editorIntro{padding:14px}
+  .scheduleStack>.editorIntro strong{font-size:21px}
+  .scheduleStack>.editorIntro span{font-size:11px;line-height:1.4}
+  .scheduleStack>.editorIntro button{
+    width:100%;
+    padding:11px 14px!important
+  }
+  .scheduleStack>.card{padding:18px}
+
+  .scheduleStack .dayEditor{gap:12px}
+  .scheduleStack .dayEditor>div{width:100%;min-width:0}
+
+  .scheduleStack .eventSummaryRow{
+    gap:9px;
+    padding:11px 12px
+  }
+  .scheduleStack .eventSummaryTime{min-width:42px}
+  .scheduleStack .eventSummaryMain{min-width:0}
+  .scheduleStack .eventSummaryMain strong,
+  .scheduleStack .eventSummaryMain small{overflow-wrap:anywhere}
+  .scheduleStack .eventSummaryCounts{
+    width:100%;
+    box-sizing:border-box;
+    padding:4px 0 0 51px;
+    white-space:normal;
+    line-height:1.4
+  }
+
+  .scheduleStack .eventEditor{
+    width:100%;
+    padding:14px;
+    grid-template-columns:minmax(0,1fr)
+  }
+  .scheduleStack .eventEditorTop{
+    width:100%;
+    grid-template-columns:minmax(0,1fr)
+  }
+  .scheduleStack .eventEditorHeader{align-items:flex-start}
+  .scheduleStack .eventEditorHeader strong{overflow-wrap:anywhere}
+  .scheduleStack .rsvpToggle{
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box
+  }
+  .scheduleStack .inviteEditor,
+  .scheduleStack .attendanceSummary{width:100%}
+  .scheduleStack .inviteChoices label{min-width:0}
+  .scheduleStack .attendanceSummary>span{white-space:normal}
+  .scheduleStack .eventLocationPreview{max-width:100%;box-sizing:border-box}
+  .scheduleStack .locationPreviewHead span{overflow-wrap:anywhere}
+
+  /* Guest schedule: give event copy the full card width instead of squeezing it
+     beside the time and icon. */
+  .scheduleStack .bigEvent{
+    grid-template-columns:52px 36px minmax(0,1fr);
+    gap:10px 8px;
+    padding:16px 0
+  }
+  .scheduleStack .bigEvent>span{grid-column:1/-1}
+  .scheduleStack .bigEvent i{width:34px;height:34px}
+  .scheduleStack .bigEvent h3{font-size:22px}
+  .scheduleStack .bigEvent p{font-size:13px;line-height:1.55}
+  .scheduleStack .guestEventLocation small{overflow-wrap:anywhere}
+}
