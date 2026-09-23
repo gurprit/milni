@@ -32,7 +32,7 @@ export async function POST(request:Request,{params}:{params:Promise<{token:strin
   if(supplied.length<8)return NextResponse.json({ok:false,error:'Choose a password with at least 8 characters.'},{status:400});
   const row=await claimRow(token);
   if(!row)return NextResponse.json({ok:false,error:'This organiser invitation is invalid or has already been used.'},{status:404});
-  const passwordHash=row.password_hash||hashOrganiserPassword(supplied);
+  const passwordHash=row.password_hash||await hashOrganiserPassword(supplied);
   if(!row.password_hash)await d1Execute('UPDATE organiser_users SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[passwordHash,row.user_id]);
   await d1Execute("UPDATE wedding_organisers SET status='active',claim_token=NULL,updated_at=CURRENT_TIMESTAMP WHERE wedding_id=? AND user_id=?",[row.wedding_id,row.user_id]);
   const expiresAt=Date.now()+1000*60*60*24*30;
