@@ -45,7 +45,7 @@ export async function ensureNotificationTables(){
   id TEXT PRIMARY KEY,
   wedding_id TEXT NOT NULL,
   guest_id TEXT NOT NULL,
-  endpoint TEXT NOT NULL UNIQUE,
+  endpoint TEXT NOT NULL,
   p256dh TEXT NOT NULL,
   auth TEXT NOT NULL,
   created_at TEXT NOT NULL,
@@ -53,6 +53,7 @@ export async function ensureNotificationTables(){
   FOREIGN KEY (wedding_id) REFERENCES weddings(id) ON DELETE CASCADE
  )`);
  await d1Execute('CREATE INDEX IF NOT EXISTS idx_push_subscriptions_wedding ON push_subscriptions(wedding_id)');
+ await d1Execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_push_subscriptions_guest_endpoint ON push_subscriptions(wedding_id,guest_id,endpoint)');
 }
 
 export async function savePushSubscription(input:{weddingId:string;guestId:string;endpoint:string;p256dh:string;auth:string}){
@@ -60,14 +61,14 @@ export async function savePushSubscription(input:{weddingId:string;guestId:strin
  const now=new Date().toISOString();
  await d1Execute(`INSERT INTO push_subscriptions (id,wedding_id,guest_id,endpoint,p256dh,auth,created_at,updated_at)
  VALUES (?,?,?,?,?,?,?,?)
- ON CONFLICT(endpoint) DO UPDATE SET wedding_id=excluded.wedding_id,guest_id=excluded.guest_id,p256dh=excluded.p256dh,auth=excluded.auth,updated_at=excluded.updated_at`,[
+ ON CONFLICT(wedding_id,guest_id,endpoint) DO UPDATE SET p256dh=excluded.p256dh,auth=excluded.auth,updated_at=excluded.updated_at`,[
   crypto.randomUUID(),input.weddingId,input.guestId,input.endpoint,input.p256dh,input.auth,now,now
  ]);
 }
 
-export async function removePushSubscription(endpoint:string,guestId:string){
+export async function removePushSubscription(endpoint:string){
  await ensureNotificationTables();
- await d1Execute('DELETE FROM push_subscriptions WHERE endpoint=? AND guest_id=?',[endpoint,guestId]);
+ await d1Execute('DELETE FROM push_subscriptions WHERE endpoint=?',[endpoint]);
 }
 
 export async function listGuestNotifications(weddingId:string,guestId:string){
@@ -129,7 +130,7 @@ export async function publishWeddingNotification(input:{
     urgent:priority==='urgent',
    });
    if(response.status===404||response.status===410){
-    await d1Execute('DELETE FROM push_subscriptions WHERE id=?',[subscription.id]);
+    await d1Execute('DELETE FROM push_subscriptions WHERE endpoint=?',[subscription.endpoint]);
     return false;
    }
    if(!response.ok)throw new Error(`Push service returned ${response.status}`);
