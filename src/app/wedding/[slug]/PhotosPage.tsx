@@ -92,10 +92,16 @@ export default function PhotosPage(){
  const albums=draft.photoAlbums??[];
  const photos=draft.photos??[];
  const events=useMemo(()=>(draft.schedule??[]).flatMap(day=>day.events.map(event=>({id:event.id,label:`${day.label} · ${event.name}`}))),[draft.schedule]);
+ const eventIds=useMemo(()=>new Set(events.map(event=>event.id)),[events]);
+ const eventAlbums=useMemo(()=>albums.filter(album=>album.eventId&&eventIds.has(album.eventId)),[albums,eventIds]);
+ const customAlbums=useMemo(()=>albums.filter(album=>!album.eventId||!eventIds.has(album.eventId)),[albums,eventIds]);
+ const suggestedAlbum=useMemo(()=>suggestAlbumForNow(draft,albums,new Date(now)),[draft.schedule,albums,now]);
+ const uploaderName=(organiser?organiserName:guestName)||organiserName||guestName||'Wedding guest';
+ useEffect(()=>{if(!uploadAlbumTouched.current&&suggestedAlbum&&uploadAlbum!==suggestedAlbum)setUploadAlbum(suggestedAlbum)},[suggestedAlbum,uploadAlbum]);
  const syncDraft=(next:WeddingDraft)=>fetch(`/api/weddings/${encodeURIComponent(slug)}/sync`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)}).catch(()=>{});
  const saveAlbums=(next:PhotoAlbum[])=>{const nextDraft={...draft,photoAlbums:next};setDraft(nextDraft);writeWeddingDraft({photoAlbums:next});void syncDraft(nextDraft)};
  const savePhotos=(next:WeddingPhoto[])=>{setDraft(current=>({...current,photos:next}));writeWeddingDraft({photos:next})};
- const addAlbum=()=>saveAlbums([...albums,{id:`album-${Date.now()}`,name:'New album',description:'Wedding memories'}]);
+ const addAlbum=()=>saveAlbums([...albums,{id:`album-custom-${Date.now()}`,name:'New album',description:'Wedding memories'}]);
  const updateAlbum=(id:string,patch:Partial<PhotoAlbum>)=>saveAlbums(albums.map(album=>album.id===id?{...album,...patch}:album));
  const removeAlbum=(id:string)=>{if(!window.confirm('Remove this album? Photos will remain in the wedding gallery.'))return;saveAlbums(albums.filter(album=>album.id!==id));if(activeAlbum===id)setActiveAlbum('all')};
  const chooseFiles=()=>inputRef.current?.click();
@@ -119,7 +125,7 @@ export default function PhotosPage(){
     const response=await fetch('/api/media/upload',{method:'POST',body:form});
     const result=await response.json();
     if(!response.ok)throw new Error(result.error||'Upload failed');
-    const photo:WeddingPhoto={id:result.key,albumId,eventId,url:result.url,caption:caption.trim(),uploadedBy:uploader.trim()||'Wedding guest',createdAt:new Date().toISOString()};
+    const photo:WeddingPhoto={id:result.key,albumId,eventId,url:result.url,caption:caption.trim(),uploadedBy:uploaderName,createdAt:new Date().toISOString()};
     const metadata=await fetch(`/api/weddings/${encodeURIComponent(slug)}/photos`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:photo.id,albumId:photo.albumId,eventId:photo.eventId,objectKey:result.key,caption:photo.caption,uploadedBy:photo.uploadedBy})});
     if(!metadata.ok){await fetch('/api/media',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:result.key})}).catch(()=>{});throw new Error((await metadata.json()).error||'Could not save photo metadata')}
     created.push(photo);
