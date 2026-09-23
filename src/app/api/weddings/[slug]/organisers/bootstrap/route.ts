@@ -36,12 +36,12 @@ export async function POST(request:Request,{params}:{params:Promise<{slug:string
   if(creatorPassword.length<8)return NextResponse.json({ok:false,error:'Choose a password with at least 8 characters.'},{status:400});
 
   let creator=await findOrganiserByEmail(creatorEmail) as User|undefined;
-  if(creator?.password_hash&&!verifyOrganiserPassword(creatorPassword,creator.password_hash))return NextResponse.json({ok:false,error:'That email already has an organiser account. Enter its existing password.'},{status:401});
+  if(creator?.password_hash&&!await verifyOrganiserPassword(creatorPassword,creator.password_hash))return NextResponse.json({ok:false,error:'That email already has an organiser account. Enter its existing password.'},{status:401});
   if(!creator){
-   creator={id:newOrganiserId(),email:creatorEmail,name:creatorName,password_hash:hashOrganiserPassword(creatorPassword)};
+   creator={id:newOrganiserId(),email:creatorEmail,name:creatorName,password_hash:await hashOrganiserPassword(creatorPassword)};
    await d1Execute('INSERT INTO organiser_users (id,email,name,password_hash,updated_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)',[creator.id,creator.email,creator.name,creator.password_hash]);
   }else if(!creator.password_hash){
-   creator.password_hash=hashOrganiserPassword(creatorPassword);
+   creator.password_hash=await hashOrganiserPassword(creatorPassword);
    await d1Execute('UPDATE organiser_users SET name=?,password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[creatorName,creator.password_hash,creator.id]);
   }else{
    await d1Execute('UPDATE organiser_users SET name=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[creatorName,creator.id]);
