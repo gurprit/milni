@@ -2,13 +2,11 @@
 
 import {FormEvent,useEffect,useState} from 'react';
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
 import styles from './page.module.scss';
 
 type Wedding={slug:string;partner_one:string;partner_two:string;title:string|null;city:string|null;start_date:string|null;end_date:string|null;role:string};
 
-export default function OrganiserHome(){
- const router=useRouter();const[email,setEmail]=useState('');const[password,setPassword]=useState('');const[busy,setBusy]=useState(false);const[error,setError]=useState('');const[weddings,setWeddings]=useState<Wedding[]|null>(null);const[organiserEmail,setOrganiserEmail]=useState('');
+export default function OrganiserHome(){const[email,setEmail]=useState('');const[password,setPassword]=useState('');const[busy,setBusy]=useState(false);const[error,setError]=useState('');const[weddings,setWeddings]=useState<Wedding[]|null>(null);const[organiserEmail,setOrganiserEmail]=useState('');
 
  const load=async()=>{const r=await fetch('/api/organiser-weddings',{cache:'no-store'});const x=await r.json();if(!r.ok){setWeddings(null);return false}setOrganiserEmail(x.organiser?.email||'');setWeddings(x.weddings||[]);return true};
  useEffect(()=>{void load()},[]);
