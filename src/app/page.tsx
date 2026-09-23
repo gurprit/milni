@@ -253,14 +253,6 @@ export default function LandingPage() {
             <a
               className={styles.primary}
               href="/create"
-              onPointerEnter={event => {
-                if (event.pointerType === 'mouse') burstConfetti('start', 12);
-              }}
-              onFocus={event => {
-                if (event.currentTarget.matches(':focus-visible')) {
-                  burstConfetti('start', 12);
-                }
-              }}
               onClick={handleStartPlanning}
             >
               <span className={styles.buttonLabel}>Start planning →</span>
@@ -270,14 +262,6 @@ export default function LandingPage() {
             <button
               type="button"
               className={styles.secondary}
-              onPointerEnter={event => {
-                if (event.pointerType === 'mouse') burstConfetti('join', 12);
-              }}
-              onFocus={event => {
-                if (event.currentTarget.matches(':focus-visible')) {
-                  burstConfetti('join', 12);
-                }
-              }}
               onClick={handleJoinOpen}
             >
               <span className={styles.buttonLabel}>Join a wedding</span>
