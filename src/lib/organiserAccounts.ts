@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import {d1Execute,d1Query} from './d1';
 
 export type OrganiserUser={id:string;email:string;name:string;password_hash:string|null};
@@ -27,22 +26,43 @@ export async function ensureOrganiserSchema(){
  try{await d1Execute('CREATE INDEX IF NOT EXISTS idx_wedding_organisers_user ON wedding_organisers(user_id,status)')}catch{}
 }
 
-export function hashOrganiserPassword(password:string){
- const salt=crypto.randomBytes(16).toString('base64url');
- const iterations=120000;
- const hash=crypto.pbkdf2Sync(password,salt,iterations,32,'sha256').toString('base64url');
- return `pbkdf2$${iterations}$${salt}$${hash}`;
+const encoder=new TextEncoder();
+
+function randomBase64Url(bytes:number){
+ const value=crypto.getRandomValues(new Uint8Array(bytes));
+ return Buffer.from(value).toString('base64url');
 }
 
-export function verifyOrganiserPassword(password:string,stored:string|null|undefined){
+async function derivePassword(password:string,salt:Uint8Array,iterations:number){
+ const key=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveBits']);
+ const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations},key,256);
+ return new Uint8Array(bits);
+}
+
+function constantTimeEqual(a:Uint8Array,b:Uint8Array){
+ if(a.length!==b.length)return false;
+ let diff=0;
+ for(let i=0;i<a.length;i++)diff|=a[i]^b[i];
+ return diff===0;
+}
+
+export async function hashOrganiserPassword(password:string){
+ const salt=crypto.getRandomValues(new Uint8Array(16));
+ const iterations=120000;
+ const hash=await derivePassword(password,salt,iterations);
+ return `pbkdf2$${iterations}$${Buffer.from(salt).toString('base64url')}$${Buffer.from(hash).toString('base64url')}`;
+}
+
+export async function verifyOrganiserPassword(password:string,stored:string|null|undefined){
  if(!stored)return false;
- const [kind,iterationText,salt,expected]=stored.split('$');
- if(kind!=='pbkdf2'||!iterationText||!salt||!expected)return false;
+ const [kind,iterationText,saltText,expectedText]=stored.split('$');
+ if(kind!=='pbkdf2'||!iterationText||!saltText||!expectedText)return false;
  const iterations=Number(iterationText);
  if(!Number.isFinite(iterations)||iterations<1)return false;
- const actual=crypto.pbkdf2Sync(password,salt,iterations,32,'sha256').toString('base64url');
- const a=Buffer.from(actual),b=Buffer.from(expected);
- return a.length===b.length&&crypto.timingSafeEqual(a,b);
+ const salt=new Uint8Array(Buffer.from(saltText,'base64url'));
+ const expected=new Uint8Array(Buffer.from(expectedText,'base64url'));
+ const actual=await derivePassword(password,salt,iterations);
+ return constantTimeEqual(actual,expected);
 }
 
 export async function findOrganiserByEmail(email:string){
@@ -72,4 +92,4 @@ export async function listOrganiserWeddings(userId:string){
 }
 
 export function newOrganiserId(){return `organiser-${crypto.randomUUID()}`}
-export function newClaimToken(){return crypto.randomBytes(32).toString('base64url')}
+export function newClaimToken(){return randomBase64Url(32)}
