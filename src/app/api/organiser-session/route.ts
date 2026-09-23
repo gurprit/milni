@@ -17,7 +17,11 @@ export async function GET(request:Request){
   }
  }
  if(slug&&session.userId&&!await organiserCanAccessWedding(session,slug))return NextResponse.json({ok:true,organiser:null});
- return NextResponse.json({ok:true,organiser:{email:session.email,userId:session.userId??null}});
+ let name:string|undefined;
+ if(session.userId){
+  try{name=(await findOrganiserByEmail(session.email))?.name}catch{}
+ }
+ return NextResponse.json({ok:true,organiser:{email:session.email,userId:session.userId??null,name:name||undefined}});
 }
 
 export async function POST(request:Request){
@@ -32,7 +36,7 @@ export async function POST(request:Request){
    if(requestedSlug&&!await organiserCanAccessWedding({userId:account.id},requestedSlug))return NextResponse.json({ok:false,error:'This organiser account does not have access to that wedding.'},{status:403});
    const expiresAt=Date.now()+1000*60*60*24*30;
    (await cookies()).set(ORGANISER_COOKIE,encodeOrganiserSession({email:account.email,userId:account.id,expiresAt}),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',expires:new Date(expiresAt)});
-   return NextResponse.json({ok:true,organiser:{email:account.email,userId:account.id}});
+   return NextResponse.json({ok:true,organiser:{email:account.email,userId:account.id,name:account.name}});
   }
  }catch(error){
   console.error('Organiser account login lookup failed',error);
