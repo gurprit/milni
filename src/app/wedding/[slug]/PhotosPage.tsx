@@ -23,31 +23,48 @@ export default function PhotosPage(){
  const[modeReady,setModeReady]=useState(false);
  const[activeAlbum,setActiveAlbum]=useState('all');
  const[uploadAlbum,setUploadAlbum]=useState('');
- const[uploader,setUploader]=useState('');
+ const[organiserName,setOrganiserName]=useState('');
+ const[guestName,setGuestName]=useState('');
  const[caption,setCaption]=useState('');
+ const[now,setNow]=useState(()=>Date.now());
  const[previews,setPreviews]=useState<PreviewStore>({});
  const[lightbox,setLightbox]=useState<WeddingPhoto|null>(null);
  const[uploading,setUploading]=useState(false);
  const[uploadError,setUploadError]=useState('');
  const[sharedReady,setSharedReady]=useState(false);
  const inputRef=useRef<HTMLInputElement>(null);
+ const uploadAlbumTouched=useRef(false);
  const params=useParams();
  const slug=String(params.slug||'our-wedding');
 
  useEffect(()=>{
   const local=readWeddingDraft();
   try{setPreviews(JSON.parse(localStorage.getItem(LOCAL_PHOTOS_KEY)||'{}'))}catch{}
-  void fetch('/api/organiser-session',{cache:'no-store'}).then(r=>r.json()).then(x=>{const authed=!!x.organiser;setOrganiserAuthed(authed);setOrganiser(authed&&localStorage.getItem(VIEW_MODE_KEY)==='organiser');setModeReady(true)}).catch(()=>setModeReady(true));
   void (async()=>{
    try{
-    const loaded=await readSharedWeddingDraft(slug,local);
-    let albums=loaded.photoAlbums??[];
-    if(!albums.length){
-     albums=(loaded.schedule??[]).flatMap(day=>day.events.map(event=>({id:`album-${event.id}`,name:event.name,description:`Photos from ${event.name}`,eventId:event.id})));
-     if(albums.length){loaded.photoAlbums=albums;writeWeddingDraft({photoAlbums:albums})}
-    }
+    const [organiserResponse,guestResponse,loadedDraft]=await Promise.all([
+     fetch(`/api/organiser-session?slug=${encodeURIComponent(slug)}`,{cache:'no-store'}),
+     fetch('/api/guest-session',{cache:'no-store'}),
+     readSharedWeddingDraft(slug,local)
+    ]);
+    const organiserResult=await organiserResponse.json().catch(()=>({organiser:null}));
+    const guestResult=await guestResponse.json().catch(()=>({guest:null}));
+    const authed=!!organiserResult.organiser;
+    const organiserMode=authed&&localStorage.getItem(VIEW_MODE_KEY)==='organiser';
+    setOrganiserAuthed(authed);
+    setOrganiser(organiserMode);
+    setOrganiserName(organiserResult.organiser?.name||'');
+    setGuestName(guestResult.guest?.name||'');
+    setModeReady(true);
+
+    const albums=ensureEventAlbums(loadedDraft);
+    const albumsChanged=albums.length!==(loadedDraft.photoAlbums??[]).length;
+    const loaded={...loadedDraft,photoAlbums:albums};
     setDraft(loaded);
-    setUploadAlbum(current=>current||albums[0]?.id||'');
+    writeWeddingDraft({photoAlbums:albums});
+    if(albumsChanged&&authed){
+     void fetch(`/api/weddings/${encodeURIComponent(slug)}/sync`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(loaded)}).catch(()=>{});
+    }
 
     const response=await fetch(`/api/weddings/${encodeURIComponent(slug)}/photos`,{cache:'no-store'});
     const result=await response.json();
@@ -58,12 +75,20 @@ export default function PhotosPage(){
     setDraft(current=>({...current,photos:next}));
     writeWeddingDraft({photos:next});
     setSharedReady(true);
-   }catch(error){setUploadError(error instanceof Error?error.message:'Could not connect to the shared wedding gallery')}
+   }catch(error){
+    setModeReady(true);
+    setUploadError(error instanceof Error?error.message:'Could not connect to the shared wedding gallery');
+   }
   })();
  },[slug]);
 
+ useEffect(()=>{
+  const timer=window.setInterval(()=>setNow(Date.now()),60_000);
+  return()=>window.clearInterval(timer);
+ },[]);
+
  const setMode=(next:boolean)=>{if(next&&!organiserAuthed){setShowOrganiserLogin(true);return}setOrganiser(next);localStorage.setItem(VIEW_MODE_KEY,next?'organiser':'guest')};
- const loginOrganiser=async()=>{setOrganiserError('');const response=await fetch('/api/organiser-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:organiserEmail,password:organiserPassword})});const result=await response.json();if(!response.ok){setOrganiserError(result.error||'Could not sign in.');return}setOrganiserAuthed(true);setShowOrganiserLogin(false);setOrganiserPassword('');setOrganiser(true);localStorage.setItem(VIEW_MODE_KEY,'organiser')};
+ const loginOrganiser=async()=>{setOrganiserError('');const response=await fetch('/api/organiser-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:organiserEmail,password:organiserPassword,slug})});const result=await response.json();if(!response.ok){setOrganiserError(result.error||'Could not sign in.');return}setOrganiserAuthed(true);setOrganiserName(result.organiser?.name||'');setShowOrganiserLogin(false);setOrganiserPassword('');setOrganiser(true);localStorage.setItem(VIEW_MODE_KEY,'organiser')};
  const albums=draft.photoAlbums??[];
  const photos=draft.photos??[];
  const events=useMemo(()=>(draft.schedule??[]).flatMap(day=>day.events.map(event=>({id:event.id,label:`${day.label} · ${event.name}`}))),[draft.schedule]);
