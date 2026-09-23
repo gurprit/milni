@@ -2,13 +2,22 @@ import crypto from 'node:crypto';
 import {NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
 import {currentOrganiserSession,encodeOrganiserSession,ORGANISER_COOKIE} from '../../../lib/organiserSession';
-import {findOrganiserByEmail,verifyOrganiserPassword} from '../../../lib/organiserAccounts';
+import {findOrganiserByEmail,organiserCanAccessWedding,verifyOrganiserPassword} from '../../../lib/organiserAccounts';
 
 const safeEqual=(a:string,b:string)=>{const aa=Buffer.from(a),bb=Buffer.from(b);return aa.length===bb.length&&crypto.timingSafeEqual(aa,bb)};
 
-export async function GET(){
+export async function GET(request:Request){
  const session=await currentOrganiserSession();
- return NextResponse.json({ok:true,organiser:session?{email:session.email,userId:session.userId??null}:null});
+ if(!session)return NextResponse.json({ok:true,organiser:null});
+ let slug=new URL(request.url).searchParams.get('slug');
+ if(!slug){
+  const referer=request.headers.get('referer');
+  if(referer){
+   try{const match=new URL(referer).pathname.match(/^\/wedding\/([^/]+)/);if(match)slug=decodeURIComponent(match[1])}catch{}
+  }
+ }
+ if(slug&&session.userId&&!await organiserCanAccessWedding(session,slug))return NextResponse.json({ok:true,organiser:null});
+ return NextResponse.json({ok:true,organiser:{email:session.email,userId:session.userId??null}});
 }
 
 export async function POST(request:Request){
