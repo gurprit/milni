@@ -59,42 +59,12 @@ export async function hashOrganiserPassword(password:string){
  const salt=crypto.getRandomValues(new Uint8Array(16));
  const material=await passwordMaterial(password);
  const hash=await derivePassword(material,salt,PASSWORD_ITERATIONS);
- return `pbkdf2p${PASSWORD_ITERATIONS}${Buffer.from(salt).toString('base64url')}${Buffer.from(hash).toString('base64url')}`;
+ return `pbkdf2p$${PASSWORD_ITERATIONS}$${Buffer.from(salt).toString('base64url')}$${Buffer.from(hash).toString('base64url')}`;
 }
 
 export async function verifyOrganiserPassword(password:string,stored:string|null|undefined){
  if(!stored)return false;
- const [kind,iterationText,saltText,expectedText]=stored.split('
-
-export async function findOrganiserByEmail(email:string){
- await ensureOrganiserSchema();
- return (await d1Query<OrganiserUser>('SELECT id,email,name,password_hash FROM organiser_users WHERE lower(email)=lower(?) LIMIT 1',[email.trim()]))[0];
-}
-
-export async function organiserCanAccessWedding(session:{userId?:string}|null|undefined,slug:string){
- if(!session)return false;
- if(!session.userId)return true; // legacy environment organiser remains a superuser during migration.
- await ensureOrganiserSchema();
- const rows=await d1Query<{id:string}>(`SELECT w.id
-  FROM weddings w
-  JOIN wedding_organisers wo ON wo.wedding_id=w.id
-  WHERE w.slug=? AND wo.user_id=? AND wo.status='active'
-  LIMIT 1`,[slug,session.userId]);
- return rows.length===1;
-}
-
-export async function listOrganiserWeddings(userId:string){
- await ensureOrganiserSchema();
- return d1Query<{slug:string;partner_one:string;partner_two:string;title:string|null;city:string|null;start_date:string|null;end_date:string|null;role:string}>(`SELECT w.slug,w.partner_one,w.partner_two,w.title,w.city,w.start_date,w.end_date,wo.role
-  FROM wedding_organisers wo
-  JOIN weddings w ON w.id=wo.wedding_id
-  WHERE wo.user_id=? AND wo.status='active'
-  ORDER BY w.updated_at DESC`,[userId]);
-}
-
-export function newOrganiserId(){return `organiser-${crypto.randomUUID()}`}
-export function newClaimToken(){return randomBase64Url(32)}
-);
+ const [kind,iterationText,saltText,expectedText]=stored.split('$');
  if(!iterationText||!saltText||!expectedText)return false;
  const iterations=Number(iterationText);
  if(!Number.isFinite(iterations)||iterations<1)return false;
