@@ -29,12 +29,12 @@ export async function POST(request:Request){
   if(existingWedding)return NextResponse.json({ok:false,error:'A wedding with these names already exists. Sign in to continue organising it.'},{status:409});
 
   let creator=await findOrganiserByEmail(creatorEmail) as UserRow|undefined;
-  if(creator?.password_hash&&!verifyOrganiserPassword(creatorPassword,creator.password_hash))return NextResponse.json({ok:false,error:'That organiser email already has an account. Use the existing password or sign in first.'},{status:401});
+  if(creator?.password_hash&&!await verifyOrganiserPassword(creatorPassword,creator.password_hash))return NextResponse.json({ok:false,error:'That organiser email already has an account. Use the existing password or sign in first.'},{status:401});
   if(!creator){
-   creator={id:newOrganiserId(),email:creatorEmail,name:draft.partnerOne.trim(),password_hash:hashOrganiserPassword(creatorPassword)};
+   creator={id:newOrganiserId(),email:creatorEmail,name:draft.partnerOne.trim(),password_hash:await hashOrganiserPassword(creatorPassword)};
    await d1Execute('INSERT INTO organiser_users (id,email,name,password_hash,updated_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)',[creator.id,creator.email,creator.name,creator.password_hash]);
   }else if(!creator.password_hash){
-   creator.password_hash=hashOrganiserPassword(creatorPassword);
+   creator.password_hash=await hashOrganiserPassword(creatorPassword);
    await d1Execute('UPDATE organiser_users SET name=?,password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[draft.partnerOne.trim(),creator.password_hash,creator.id]);
   }else{
    await d1Execute('UPDATE organiser_users SET name=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[draft.partnerOne.trim(),creator.id]);
