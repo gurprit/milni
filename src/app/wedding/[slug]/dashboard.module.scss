@@ -51,3 +51,7 @@ button.eventSummaryCounts{border:0;background:transparent;padding:6px 4px;cursor
   .sideQuote{display:none}
   .organiserBar{top:72px}
 }
+
+.eventLocationEditor{display:grid;gap:8px;align-self:start}.eventLocationEditor>label{display:grid;gap:6px}.eventLocationPreview{display:grid;gap:7px}.eventLocationMap{height:145px;border-radius:8px;overflow:hidden;background:#eee8df;position:relative}.eventLocationMap>span{position:absolute;inset:0;display:grid;place-items:center;padding:16px;text-align:center;color:#7a827f;font:11px/1.4 Arial,sans-serif}.eventLocationPreview>a,.guestEventLocation>a{display:inline-flex;align-items:center;justify-content:center;border-radius:7px;background:#17443a;color:#fff;text-decoration:none;font:700 10px Arial,sans-serif;padding:9px 11px}.guestEventLocation{display:grid;gap:7px;margin-top:8px}.guestEventLocation>small{margin:0!important}.guestEventLocation>a{justify-self:start;padding:7px 10px;background:#f3eadc;color:#17443a;border:1px solid #decdb8}.eventCardFields .eventLocationEditor{grid-column:span 2}
+@media(max-width:900px){.eventCardFields .eventLocationEditor{grid-column:1/-1}}
+@media(max-width:560px){.eventLocationMap{height:190px}.eventLocationPreview>a,.guestEventLocation>a{width:100%;box-sizing:border-box}}
