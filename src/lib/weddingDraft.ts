@@ -1,6 +1,6 @@
 export type EventType='Celebration'|'Food'|'Tradition'|'Ceremony'|'Travel'|'Custom';
 export type EventInviteMode='Everyone'|'Partner one'|'Partner two'|'Groups'|'Custom';
-export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType;location?:string;rsvpEnabled?:boolean;inviteMode?:EventInviteMode;invitedGroups?:string[];invitedGuestIds?:string[]};
+export type WeddingEvent={id:string;start:string;end:string;name:string;description:string;type:EventType;location?:string;locationInfo?:LocationInfo;rsvpEnabled?:boolean;inviteMode?:EventInviteMode;invitedGroups?:string[];invitedGuestIds?:string[]};
 export function guestInvitedToEvent(event:WeddingEvent,guest:Guest){const mode=event.inviteMode??'Everyone';if(mode==='Everyone')return true;if(mode==='Partner one')return guest.side==='Partner one'||guest.side==='Both';if(mode==='Partner two')return guest.side==='Partner two'||guest.side==='Both';if(mode==='Groups')return(event.invitedGroups??[]).includes(guest.group);return(event.invitedGuestIds??[]).includes(guest.id)}
 export type WeddingDay={id:string;label:string;date:string;events:WeddingEvent[]};
 export type GuestStatus='Going'|'Awaiting RSVP'|'Not going';
