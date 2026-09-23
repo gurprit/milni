@@ -6,7 +6,7 @@ type Event={id:string;start:string;end:string;name:string;description:string;typ
 type Day={id:string;label:string;date:string;events:Event[]};
 type Album={id:string;name:string;description:string;eventId?:string};
 type Guest={id:string;name:string;group:string;status:string;side?:string;email?:string;phone?:string;dietary?:string;plusOne?:string;notes?:string};
-type Draft={partnerOne:string;partnerTwo:string;title:string;city:string;startDate:string;endDate:string;schedule?:Day[];photoAlbums?:Album[];guests?:Guest[]};
+type Draft={partnerOne:string;partnerTwo:string;title:string;city:string;startDate:string;endDate:string;inviteHeroKey?:string;inviteHeroUrl?:string;schedule?:Day[];photoAlbums?:Album[];guests?:Guest[]};
 
 export async function POST(request:NextRequest,{params}:{params:Promise<{slug:string}>}){
  try{
@@ -14,12 +14,13 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{slug:st
   if(!organiser)return NextResponse.json({ok:false,error:'Organiser sign-in required.'},{status:401});
   const{slug}=await params;
   const draft=await request.json() as Draft;
+  try{await d1Execute('ALTER TABLE weddings ADD COLUMN invite_hero_key TEXT')}catch{}
   try{await d1Execute('ALTER TABLE events ADD COLUMN rsvp_enabled INTEGER NOT NULL DEFAULT 1')}catch{}
   try{await d1Execute("ALTER TABLE events ADD COLUMN invite_mode TEXT NOT NULL DEFAULT 'Everyone'")}catch{}
   try{await d1Execute('ALTER TABLE events ADD COLUMN invited_groups TEXT')}catch{}
   try{await d1Execute('ALTER TABLE events ADD COLUMN invited_guest_ids TEXT')}catch{}
   const proposedWeddingId=`wedding-${slug}`;
-  await d1Execute(`INSERT INTO weddings (id,slug,partner_one,partner_two,title,city,start_date,end_date,updated_at) VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(slug) DO UPDATE SET partner_one=excluded.partner_one,partner_two=excluded.partner_two,title=excluded.title,city=excluded.city,start_date=excluded.start_date,end_date=excluded.end_date,updated_at=CURRENT_TIMESTAMP`,[proposedWeddingId,slug,draft.partnerOne||'',draft.partnerTwo||'',draft.title||'',draft.city||'',draft.startDate||'',draft.endDate||'']);
+  await d1Execute(`INSERT INTO weddings (id,slug,partner_one,partner_two,title,city,start_date,end_date,invite_hero_key,updated_at) VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(slug) DO UPDATE SET partner_one=excluded.partner_one,partner_two=excluded.partner_two,title=excluded.title,city=excluded.city,start_date=excluded.start_date,end_date=excluded.end_date,invite_hero_key=excluded.invite_hero_key,updated_at=CURRENT_TIMESTAMP`,[proposedWeddingId,slug,draft.partnerOne||'',draft.partnerTwo||'',draft.title||'',draft.city||'',draft.startDate||'',draft.endDate||'',draft.inviteHeroKey??null]);
   const weddingRow=(await d1Query<{id:string}>('SELECT id FROM weddings WHERE slug=? LIMIT 1',[slug]))[0];
   if(!weddingRow)throw new Error('Wedding could not be resolved after sync');
   const weddingId=weddingRow.id;
