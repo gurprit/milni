@@ -22,7 +22,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
   const guestSession=await currentGuestSession();
   const canSeePrivateGuests=organiser;
   const[events,albums,guests]=await Promise.all([
-   d1Query<EventRow>('SELECT id,day_label,event_date,name,description,event_type,start_time,end_time,location,location_name,location_lat,location_lng,location_place_id,rsvp_enabled,invite_mode,invited_groups,invited_guest_ids,sort_order FROM events WHERE wedding_id=? ORDER BY sort_order,event_date,start_time',[wedding.id]),
+   d1Query<EventRow>('SELECT id,day_label,event_date,name,description,event_type,start_time,end_time,location,location_name,location_lat,location_lng,location_place_id,rsvp_enabled,invite_mode,invited_groups,invited_guest_ids,sort_order FROM events WHERE wedding_id=? ORDER BY event_date,start_time,sort_order',[wedding.id]),
    d1Query<AlbumRow>('SELECT id,event_id,name,description,cover_object_key FROM photo_albums WHERE wedding_id=? ORDER BY created_at,id',[wedding.id]),
    canSeePrivateGuests?d1Query<GuestRow>('SELECT id,name,email,phone,guest_group,rsvp_status,wedding_side,dietary,plus_one,organiser_notes FROM guests WHERE wedding_id=? ORDER BY name',[wedding.id]):guestSession&&guestSession.weddingId===wedding.id?d1Query<GuestRow>('SELECT id,name,NULL AS email,NULL AS phone,guest_group,rsvp_status,wedding_side,NULL AS dietary,NULL AS plus_one,NULL AS organiser_notes FROM guests WHERE wedding_id=? ORDER BY name',[wedding.id]):Promise.resolve([] as GuestRow[])
   ]);
