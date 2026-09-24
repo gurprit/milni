@@ -61,6 +61,8 @@ export async function POST(request:Request,{params}:{params:Promise<{slug:string
   if(alreadyJoined)return NextResponse.json({ok:false,error:`${recipient.name} has already joined Singles.`},{status:409});
 
   await ensureTable();
+  const existing=(await d1Query<{id:string}>('SELECT id FROM singles_invites WHERE wedding_id=? AND sender_guest_id=? AND recipient_guest_id=? LIMIT 1',[id,session.guestId,recipientGuestId]))[0];
+  if(existing)return NextResponse.json({ok:true,alreadySent:true,recipient:{id:recipient.id,name:recipient.name}});
   const inviteId=crypto.randomUUID();
   const now=new Date().toISOString();
   await d1Execute('INSERT OR IGNORE INTO singles_invites (id,wedding_id,sender_guest_id,recipient_guest_id,created_at) VALUES (?,?,?,?,?)',[inviteId,id,session.guestId,recipientGuestId,now]);
