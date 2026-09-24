@@ -12,7 +12,7 @@
     "dev:vinext": "vinext dev --port 3001",
     "build:vinext": "vinext build",
     "start:vinext": "wrangler dev --config dist/server/wrangler.json",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "sh -c 'set -a; [ ! -f .env.local ] || . ./.env.local; set +a; vinext-cloudflare deploy'"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
