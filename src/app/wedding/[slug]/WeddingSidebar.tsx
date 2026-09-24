@@ -5,7 +5,7 @@ import Link from 'next/link';
 import styles from './dashboard.module.scss';
 import NotificationBell from './NotificationBell';
 
-const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live'],['invite','✉','Invitation']] as const;
+const nav=[['home','⌂','Home'],['schedule','▣','Schedule'],['events','✦','Events'],['travel','▤','Travel'],['menu','♨','Menu'],['music','♫','Music'],['photos','▧','Photos'],['moments','♡','Moments'],['guests','♧','Guests'],['singles','♡','Singles'],['live','♢','Live'],['invite','✉','Invitation']] as const;
 
 export default function WeddingSidebar({base,active,showOrganiser=true,organiser=false,onToggleOrganiser}:{base:string;active:string;showOrganiser?:boolean;organiser?:boolean;onToggleOrganiser?:()=>void}){
  const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
