@@ -204,6 +204,10 @@ export async function PATCH(request:Request,{params}:{params:Promise<{slug:strin
   const trackerId=guestAssigned?guest!.guestId:null;
 
   if(action==='start'||action==='position'){
+   const existingState=(await d1Query<LiveRow>('SELECT journey_id,status,lat,lng,accuracy,tracker_guest_id,started_at,updated_at,arrived_at FROM coach_live_state WHERE wedding_id=? AND journey_id=? LIMIT 1',[id,journeyId]))[0];
+   if(existingState?.status==='arrived'){
+    return NextResponse.json({ok:false,error:'This coach journey has already arrived.'},{status:409});
+   }
    const lat=validCoordinate(body.lat,-90,90);
    const lng=validCoordinate(body.lng,-180,180);
    const accuracy=Number.isFinite(Number(body.accuracy))?Math.max(0,Number(body.accuracy)):null;
