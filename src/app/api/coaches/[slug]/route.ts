@@ -195,14 +195,13 @@ export async function PATCH(request:Request,{params}:{params:Promise<{slug:strin
   const journey=(await d1Query<JourneyRow>('SELECT id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,organiser_can_track,sort_order FROM coach_journeys WHERE wedding_id=? AND id=? LIMIT 1',[id,journeyId]))[0];
   if(!journey)return NextResponse.json({ok:false,error:'Coach journey not found'},{status:404});
 
-  if(organiser&&!journey.organiser_can_track)return NextResponse.json({ok:false,error:'This journey has not nominated an organiser as a tracker.'},{status:403});
-  if(!organiser){
-   const assigned=(await d1Query<{guest_id:string}>('SELECT guest_id FROM coach_trackers WHERE wedding_id=? AND journey_id=? AND guest_id=? LIMIT 1',[id,journeyId,guest!.guestId]))[0];
-   if(!assigned)return NextResponse.json({ok:false,error:'You are not a nominated tracker for this coach.'},{status:403});
-  }
+  const guestAssignment=guestAllowed?(await d1Query<{guest_id:string}>('SELECT guest_id FROM coach_trackers WHERE wedding_id=? AND journey_id=? AND guest_id=? LIMIT 1',[id,journeyId,guest!.guestId]))[0]:null;
+  const guestAssigned=!!guestAssignment;
+  const organiserAssigned=organiser&&Boolean(journey.organiser_can_track);
+  if(!guestAssigned&&!organiserAssigned)return NextResponse.json({ok:false,error:'You are not a nominated tracker for this coach.'},{status:403});
 
   const now=new Date().toISOString();
-  const trackerId=guestAllowed?guest!.guestId:null;
+  const trackerId=guestAssigned?guest!.guestId:null;
 
   if(action==='start'||action==='position'){
    const lat=validCoordinate(body.lat,-90,90);
@@ -210,7 +209,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{slug:strin
    const accuracy=Number.isFinite(Number(body.accuracy))?Math.max(0,Number(body.accuracy)):null;
    if(lat==null||lng==null)return NextResponse.json({ok:false,error:'A valid location is required.'},{status:400});
 
-   if(action==='position'&&!organiser){
+   if(action==='position'&&trackerId){
     const current=(await d1Query<LiveRow>('SELECT journey_id,status,lat,lng,accuracy,tracker_guest_id,started_at,updated_at,arrived_at FROM coach_live_state WHERE wedding_id=? AND journey_id=? LIMIT 1',[id,journeyId]))[0];
     if(current?.status==='tracking'&&current.tracker_guest_id&&current.tracker_guest_id!==guest!.guestId){
      return NextResponse.json({ok:false,error:'Another nominated tracker has taken over this coach.'},{status:409});
