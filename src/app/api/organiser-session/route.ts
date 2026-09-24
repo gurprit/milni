@@ -48,8 +48,15 @@ export async function POST(request:Request){
  if(!expectedEmail||!expectedPassword)return NextResponse.json({ok:false,error:'Email or password is incorrect.'},{status:401});
  if(!safeEqual(normalisedEmail,expectedEmail.trim().toLowerCase())||!safeEqual(suppliedPassword,expectedPassword))return NextResponse.json({ok:false,error:'Email or password is incorrect.'},{status:401});
  const expiresAt=Date.now()+1000*60*60*24*14;
- (await cookies()).set(ORGANISER_COOKIE,encodeOrganiserSession({email:expectedEmail,expiresAt}),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',expires:new Date(expiresAt)});
- return NextResponse.json({ok:true,organiser:{email:expectedEmail,userId:null}});
+ let legacyAccount;
+ try{legacyAccount=await findOrganiserByEmail(normalisedEmail)}catch{}
+ const legacySession=legacyAccount
+  ? {email:legacyAccount.email,userId:legacyAccount.id,expiresAt}
+  : {email:expectedEmail,expiresAt};
+ (await cookies()).set(ORGANISER_COOKIE,encodeOrganiserSession(legacySession),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',expires:new Date(expiresAt)});
+ return NextResponse.json({ok:true,organiser:legacyAccount
+  ? {email:legacyAccount.email,userId:legacyAccount.id,name:legacyAccount.name}
+  : {email:expectedEmail,userId:null}});
 }
 
 export async function DELETE(){
