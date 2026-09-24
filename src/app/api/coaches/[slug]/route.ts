@@ -6,11 +6,11 @@ import {organiserCanAccessWedding} from '../../../../lib/organiserAccounts';
 import {publishWeddingNotification} from '../../../../lib/notifications';
 
 type WeddingRow={id:string};
-type JourneyRow={id:string;name:string;time:string;place:string;destination:string|null;note:string;linked_event_id:string|null;pickup_json:string|null;destination_json:string|null;sort_order:number};
+type JourneyRow={id:string;name:string;time:string;place:string;destination:string|null;note:string;linked_event_id:string|null;pickup_json:string|null;destination_json:string|null;organiser_can_track?:number;sort_order:number};
 type TrackerRow={journey_id:string;guest_id:string;name?:string};
 type LiveRow={journey_id:string;status:string;lat:number|null;lng:number|null;accuracy:number|null;tracker_guest_id:string|null;started_at:string|null;updated_at:string|null;arrived_at:string|null};
 type LocationInfo={name:string;formattedAddress:string;lat?:number;lng?:number;placeId?:string};
-type JourneyInput={id:string;name:string;time:string;place:string;destination?:string;note:string;linkedEventId?:string;pickupLocation?:LocationInfo;destinationLocation?:LocationInfo;trackerGuestIds?:string[]};
+type JourneyInput={id:string;name:string;time:string;place:string;destination?:string;note:string;linkedEventId?:string;pickupLocation?:LocationInfo;destinationLocation?:LocationInfo;trackerGuestIds?:string[];organiserCanTrack?:boolean};
 
 async function ensureTables(){
  await d1Execute(`CREATE TABLE IF NOT EXISTS coach_journeys (
@@ -24,6 +24,7 @@ async function ensureTables(){
   linked_event_id TEXT,
   pickup_json TEXT,
   destination_json TEXT,
+  organiser_can_track INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (wedding_id,id),
@@ -51,6 +52,7 @@ async function ensureTables(){
   PRIMARY KEY (wedding_id,journey_id),
   FOREIGN KEY (wedding_id) REFERENCES weddings(id) ON DELETE CASCADE
  )`);
+ try{await d1Execute('ALTER TABLE coach_journeys ADD COLUMN organiser_can_track INTEGER NOT NULL DEFAULT 0')}catch{}
  await d1Execute('CREATE INDEX IF NOT EXISTS idx_coach_journeys_wedding ON coach_journeys(wedding_id,sort_order)');
  await d1Execute('CREATE INDEX IF NOT EXISTS idx_coach_trackers_wedding ON coach_trackers(wedding_id,journey_id)');
 }
@@ -79,7 +81,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
 
   await ensureTables();
   const [journeys,trackers,live,guests]=await Promise.all([
-   d1Query<JourneyRow>('SELECT id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,sort_order FROM coach_journeys WHERE wedding_id=? ORDER BY sort_order',[id]),
+   d1Query<JourneyRow>('SELECT id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,organiser_can_track,sort_order FROM coach_journeys WHERE wedding_id=? ORDER BY sort_order',[id]),
    d1Query<TrackerRow>('SELECT ct.journey_id,ct.guest_id,g.name FROM coach_trackers ct LEFT JOIN guests g ON g.id=ct.guest_id AND g.wedding_id=ct.wedding_id WHERE ct.wedding_id=?',[id]),
    d1Query<LiveRow>('SELECT journey_id,status,lat,lng,accuracy,tracker_guest_id,started_at,updated_at,arrived_at FROM coach_live_state WHERE wedding_id=?',[id]),
    organiser?d1Query<{id:string;name:string;guest_group:string|null}>('SELECT id,name,guest_group FROM guests WHERE wedding_id=? ORDER BY name',[id]):Promise.resolve([])
@@ -113,7 +115,8 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
      destinationLocation:parseLocation(journey.destination_json),
      trackerGuestIds:organiser?assigned.map(item=>item.guest_id):undefined,
      trackerNames:assigned.map(item=>item.name).filter(Boolean),
-     canTrack:organiser||!!guest&&assigned.some(item=>item.guest_id===guest.guestId),
+     organiserCanTrack:Boolean(journey.organiser_can_track),
+     canTrack:(organiser&&Boolean(journey.organiser_can_track))||!!guest&&assigned.some(item=>item.guest_id===guest.guestId),
      isCurrentTracker:!!guest&&state?.tracker_guest_id===guest.guestId,
      live:state?{
       status:state.status,
@@ -157,13 +160,13 @@ export async function PUT(request:Request,{params}:{params:Promise<{slug:string}
   for(let index=0;index<journeys.length;index++){
    const journey=journeys[index];
    if(!journey.id||!journey.name)continue;
-   await d1Execute(`INSERT INTO coach_journeys (wedding_id,id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,sort_order,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(wedding_id,id) DO UPDATE SET name=excluded.name,time=excluded.time,place=excluded.place,destination=excluded.destination,note=excluded.note,linked_event_id=excluded.linked_event_id,pickup_json=excluded.pickup_json,destination_json=excluded.destination_json,sort_order=excluded.sort_order,updated_at=excluded.updated_at`,[
-     id,journey.id,String(journey.name).slice(0,120),String(journey.time||'').slice(0,20),String(journey.place||'').slice(0,300),String(journey.destination||'').slice(0,300)||null,String(journey.note||'').slice(0,1000),String(journey.linkedEventId||'')||null,journey.pickupLocation?JSON.stringify(journey.pickupLocation):null,journey.destinationLocation?JSON.stringify(journey.destinationLocation):null,index,new Date().toISOString()
+   await d1Execute(`INSERT INTO coach_journeys (wedding_id,id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,organiser_can_track,sort_order,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(wedding_id,id) DO UPDATE SET name=excluded.name,time=excluded.time,place=excluded.place,destination=excluded.destination,note=excluded.note,linked_event_id=excluded.linked_event_id,pickup_json=excluded.pickup_json,destination_json=excluded.destination_json,organiser_can_track=excluded.organiser_can_track,sort_order=excluded.sort_order,updated_at=excluded.updated_at`,[
+     id,journey.id,String(journey.name).slice(0,120),String(journey.time||'').slice(0,20),String(journey.place||'').slice(0,300),String(journey.destination||'').slice(0,300)||null,String(journey.note||'').slice(0,1000),String(journey.linkedEventId||'')||null,journey.pickupLocation?JSON.stringify(journey.pickupLocation):null,journey.destinationLocation?JSON.stringify(journey.destinationLocation):null,journey.organiserCanTrack?1:0,index,new Date().toISOString()
     ]);
    await d1Execute('DELETE FROM coach_trackers WHERE wedding_id=? AND journey_id=?',[id,journey.id]);
-   for(const guestId of [...new Set(journey.trackerGuestIds??[])].slice(0,5)){
+   for(const guestId of [...new Set(journey.trackerGuestIds??[])].slice(0,3)){
     const guestExists=(await d1Query<{id:string}>('SELECT id FROM guests WHERE id=? AND wedding_id=? LIMIT 1',[guestId,id]))[0];
     if(guestExists)await d1Execute('INSERT OR IGNORE INTO coach_trackers (wedding_id,journey_id,guest_id,created_at) VALUES (?,?,?,?)',[id,journey.id,guestId,new Date().toISOString()]);
    }
@@ -189,9 +192,10 @@ export async function PATCH(request:Request,{params}:{params:Promise<{slug:strin
   const body=await request.json() as {journeyId?:string;action?:string;lat?:number;lng?:number;accuracy?:number};
   const journeyId=String(body.journeyId||'');
   const action=String(body.action||'');
-  const journey=(await d1Query<JourneyRow>('SELECT id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,sort_order FROM coach_journeys WHERE wedding_id=? AND id=? LIMIT 1',[id,journeyId]))[0];
+  const journey=(await d1Query<JourneyRow>('SELECT id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,organiser_can_track,sort_order FROM coach_journeys WHERE wedding_id=? AND id=? LIMIT 1',[id,journeyId]))[0];
   if(!journey)return NextResponse.json({ok:false,error:'Coach journey not found'},{status:404});
 
+  if(organiser&&!journey.organiser_can_track)return NextResponse.json({ok:false,error:'This journey has not nominated an organiser as a tracker.'},{status:403});
   if(!organiser){
    const assigned=(await d1Query<{guest_id:string}>('SELECT guest_id FROM coach_trackers WHERE wedding_id=? AND journey_id=? AND guest_id=? LIMIT 1',[id,journeyId,guest!.guestId]))[0];
    if(!assigned)return NextResponse.json({ok:false,error:'You are not a nominated tracker for this coach.'},{status:403});
