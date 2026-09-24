@@ -114,6 +114,23 @@ export default function NotificationBell({base}:{base:string}){
   if(!response.ok)throw new Error(data.error||'Could not save this push subscription.');
  },[slug]);
 
+ const removeStoredSubscription=useCallback(async(endpoint:string)=>{
+  try{
+   await fetch('/api/push/subscribe',{
+    method:'DELETE',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({endpoint}),
+   });
+  }catch{}
+ },[]);
+
+ const currentPushKey=useCallback(async()=>{
+  const response=await fetch('/api/push/public-key',{cache:'no-store'});
+  const data=await response.json();
+  if(!response.ok||!data.configured||!data.publicKey)throw new Error('Push is not configured on the server yet.');
+  return String(data.publicKey);
+ },[]);
+
  const syncPushState=useCallback(async()=>{
   if(typeof window==='undefined'||!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
    setPushState('unsupported');
@@ -136,15 +153,32 @@ export default function NotificationBell({base}:{base:string}){
     }
     registration=await getRegistration();
    }
-   const subscription=await registration.pushManager.getSubscription();
-   if(subscription&&Notification.permission==='granted'){
+   let subscription=await registration.pushManager.getSubscription();
+   if(Notification.permission==='granted'){
+    const publicKey=await currentPushKey();
+    if(subscription){
+     const existingKey=subscription.options.applicationServerKey;
+     const existingKeyText=existingKey?base64UrlFromBuffer(existingKey):'';
+     if(existingKeyText&&existingKeyText!==publicKey){
+      const staleEndpoint=subscription.endpoint;
+      await subscription.unsubscribe();
+      await removeStoredSubscription(staleEndpoint);
+      subscription=null;
+     }
+    }
+    if(!subscription){
+     subscription=await registration.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:applicationServerKey(publicKey),
+     });
+    }
     await storeSubscription(subscription);
     setPushState('enabled');
    }else setPushState('disabled');
   }catch{
    setPushState('error');
   }
- },[storeSubscription]);
+ },[currentPushKey,removeStoredSubscription,storeSubscription]);
 
  useEffect(()=>{
   void load();
@@ -185,15 +219,23 @@ export default function NotificationBell({base}:{base:string}){
   try{
    const permission=await Notification.requestPermission();
    if(permission!=='granted'){setPushState(permission==='denied'?'denied':'disabled');return}
-   const keyResponse=await fetch('/api/push/public-key',{cache:'no-store'});
-   const keyData=await keyResponse.json();
-   if(!keyResponse.ok||!keyData.configured||!keyData.publicKey)throw new Error('Push is not configured on the server yet.');
+   const publicKey=await currentPushKey();
    const registration=await getRegistration();
    let subscription=await registration.pushManager.getSubscription();
+   if(subscription){
+    const existingKey=subscription.options.applicationServerKey;
+    const existingKeyText=existingKey?base64UrlFromBuffer(existingKey):'';
+    if(existingKeyText&&existingKeyText!==publicKey){
+     const staleEndpoint=subscription.endpoint;
+     await subscription.unsubscribe();
+     await removeStoredSubscription(staleEndpoint);
+     subscription=null;
+    }
+   }
    if(!subscription){
     subscription=await registration.pushManager.subscribe({
      userVisibleOnly:true,
-     applicationServerKey:applicationServerKey(keyData.publicKey),
+     applicationServerKey:applicationServerKey(publicKey),
     });
    }
    await storeSubscription(subscription);
