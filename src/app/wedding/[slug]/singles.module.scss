@@ -12,3 +12,5 @@
 @media(max-width:900px){.introActions{width:100%;min-width:0}.inviteNudge{align-items:flex-start;flex-direction:column}.inviteNudge button{width:100%}}
 
 .chatGif{display:block;width:min(320px,100%);height:auto;max-height:320px;object-fit:contain;border-radius:12px;background:#f1ebe4}.messages p+.chatGif{margin-top:9px}.mine .chatGif{margin-left:auto}.theirs .chatGif{margin-right:auto}@media(max-width:600px){.overlay{padding:10px}.chatModal{width:100%;height:min(760px,calc(100dvh - 20px));max-height:calc(100dvh - 20px);padding:20px 16px 14px;border-radius:18px}.chatHead{padding-right:42px;padding-bottom:13px}.chatHead>img,.chatHead>div:first-child{width:44px;height:44px}.chatHead h2{font-size:25px}.messages{padding:14px 0;gap:10px}.messages>div{max-width:86%}.messages p{font-size:14px}.chatGif{max-width:min(76vw,320px)}.composer{padding-top:10px}.chatComposerBar{align-items:flex-end}.chatComposerBar>button{height:40px;min-width:78px;padding:0 14px}.close{right:13px;top:13px}}
+
+.chatError{padding:9px 11px;border-radius:9px;background:#fff0ec;border:1px solid #e7c2b8;color:#9e4e43;font:11px/1.4 Arial,sans-serif}
