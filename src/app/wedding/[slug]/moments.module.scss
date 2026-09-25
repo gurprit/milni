@@ -3,3 +3,5 @@
 .reactions .photoLikeButton{justify-self:center;width:auto;min-width:62px;background:transparent!important;color:#6f7774!important;border-radius:8px!important;padding:10px 12px!important;display:inline-flex;align-items:center;justify-content:center;gap:6px;overflow:visible;font:700 11px Arial,sans-serif}.photoLikeButton>span{position:relative;display:grid;place-items:center}.reactions .photoLikeButton:hover{background:#faf6f0!important;color:#b85258!important}.reactions .photoLikeButtonLiked{background:transparent!important;color:#b85258!important}.photoLikeButtonLiked svg{transform:scale(1.06)}
 
 @media(max-width:600px){.commentComposer{grid-template-columns:32px minmax(0,1fr) 34px}.commentComposer>:nth-child(3){grid-column:2/4;justify-self:start}}
+
+.commentComposer>div>button{width:auto;height:auto}
