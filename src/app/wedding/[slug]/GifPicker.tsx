@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState} from 'react';
 import {Search,X} from 'lucide-react';
+import {createPortal} from 'react-dom';
 import styles from './gif-picker.module.scss';
 
 type GifResult={
@@ -83,7 +84,7 @@ export default function GifPicker({selectedUrl='',onSelect,onClear,disabled=fals
  return <div className={compact?styles.compact:styles.root}>
   <button type="button" className={styles.trigger} disabled={disabled} onClick={()=>setOpen(true)}>{label}</button>
   {selectedUrl&&<div className={styles.attachment}><img src={selectedUrl} alt="Selected GIF"/><button type="button" onClick={clear} aria-label="Remove GIF"><X size={13}/></button></div>}
-  {open&&<div className={styles.backdrop} onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
+  {open&&typeof document!=='undefined'&&createPortal(<div className={styles.backdrop} onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
    <section className={styles.panel} role="dialog" aria-modal="true" aria-label="Choose a GIF">
     <header><div><span>ADD A GIF</span><h3>Find the right reaction</h3></div><button type="button" className={styles.close} onClick={()=>setOpen(false)} aria-label="Close GIF picker"><X size={20}/></button></header>
     <label className={styles.search}><Search size={18}/><input ref={inputRef} value={query} onChange={event=>setQuery(event.target.value.slice(0,50))} placeholder="Search GIFs by keyword…" autoComplete="off"/></label>
@@ -91,6 +92,6 @@ export default function GifPicker({selectedUrl='',onSelect,onClear,disabled=fals
     {results.length>0&&<div className={styles.grid}>{results.map(gif=><button type="button" key={gif.id} title={gif.title} onClick={()=>choose(gif.url)}><img src={gif.previewUrl} alt={gif.title}/></button>)}</div>}
     <footer>Powered by <strong>GIPHY</strong></footer>
    </section>
-  </div>}
+  </div>,document.body)}
  </div>;
 }
