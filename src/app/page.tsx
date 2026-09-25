@@ -12,7 +12,6 @@ import {useRouter} from 'next/navigation';
 import styles from './page.module.scss';
 
 type BurstKind = 'start' | 'join';
-type JoinCandidate = {id:string;name:string;group:string};
 const RECENT_WEDDING_KEY='milni:recent-wedding';
 
 type ConfettiParticle = {
@@ -83,7 +82,6 @@ export default function LandingPage() {
   const [open, setOpen] = useState(false);
   const [contact, setContact] = useState('');
   const [code, setCode] = useState('');
-  const [candidates, setCandidates] = useState<JoinCandidate[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [particles, setParticles] = useState<ConfettiParticle[]>([]);
@@ -207,7 +205,7 @@ export default function LandingPage() {
     </span>
   );
 
-  const joinGuest = async (guestId?: string) => {
+  const joinGuest = async () => {
     setBusy(true);
     setError('');
 
@@ -215,14 +213,9 @@ export default function LandingPage() {
       const response = await fetch('/api/guest-session', {
         method: 'POST',
         headers: {'content-type': 'application/json'},
-        body: JSON.stringify({contact, code, guestId}),
+        body: JSON.stringify({contact, code}),
       });
       const result = await response.json();
-
-      if (response.status === 409 && result.requiresGuestSelection) {
-        setCandidates(result.candidates ?? []);
-        return;
-      }
 
       if (!response.ok) {
         throw new Error(result.error || 'Could not join wedding.');
@@ -347,7 +340,6 @@ export default function LandingPage() {
                 value={contact}
                 onChange={event => {
                   setContact(event.target.value);
-                  setCandidates([]);
                 }}
                 placeholder="you@example.com or 07123 456789"
                 required
@@ -359,29 +351,11 @@ export default function LandingPage() {
                 value={code}
                 onChange={event => {
                   setCode(event.target.value.toUpperCase());
-                  setCandidates([]);
                 }}
                 placeholder="Wedding code"
                 required
               />
             </label>
-            {candidates.length > 0 && (
-              <div className={styles.joinCandidates}>
-                <small>WE FOUND YOUR HOUSEHOLD</small>
-                <strong>Who are you?</strong>
-                {candidates.map(candidate => (
-                  <button
-                    type="button"
-                    key={candidate.id}
-                    onClick={() => void joinGuest(candidate.id)}
-                    disabled={busy}
-                  >
-                    <span>{candidate.name}</span>
-                    {candidate.group && <em>{candidate.group}</em>}
-                  </button>
-                ))}
-              </div>
-            )}
             {error && <div className={styles.joinError}>{error}</div>}
             <button
               className={styles.joinSubmit}
