@@ -33,7 +33,7 @@ export async function GET(request:Request){
 
 export async function POST(request:Request){
  try{
-  const{slug,contact,code,token,guestId}=await request.json();
+  const{slug,contact,code,token}=await request.json();
   let wedding:Wedding|undefined;
   let guest:Guest|undefined;
 
@@ -64,14 +64,10 @@ export async function POST(request:Request){
    const matches=guests.filter(candidate=>contactMatches(candidate,contact));
    if(!matches.length)return NextResponse.json({ok:false,error:'We could not match that email address or mobile number to this wedding guest list.'},{status:401});
 
-   if(guestId){
-    guest=matches.find(candidate=>candidate.id===String(guestId));
-    if(!guest)return NextResponse.json({ok:false,error:'That guest is not linked to the contact details you entered.'},{status:401});
-   }else if(matches.length>1){
-    return NextResponse.json({ok:false,requiresGuestSelection:true,weddingSlug:wedding.slug,candidates:matches.map(candidate=>({id:candidate.id,name:candidate.name,group:candidate.guest_group??''}))},{status:409});
-   }else{
-    guest=matches[0];
+   if(matches.length>1){
+    return NextResponse.json({ok:false,error:'That email address or mobile number is linked to more than one guest. Ask the organiser to add an individual email or phone number for you.'},{status:409});
    }
+   guest=matches[0];
   }
 
   const expiresAt=Date.now()+1000*60*60*24*30;
