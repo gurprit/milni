@@ -354,7 +354,7 @@ export default function LandingPage() {
               />
             </label>
             <label>
-              Invitation code
+              Wedding code
               <input
                 value={code}
                 onChange={event => {
