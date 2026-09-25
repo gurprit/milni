@@ -60,6 +60,20 @@ Guests get a personalised wedding experience with:
 
 ---
 
+## 🎞️ GIF search
+
+Moment posts and replies, Live announcements and Singles match chats share the same **+ GIF** picker, backed by GIPHY search.
+
+For local builds, copy `.env.example` to `.env.local` and add a GIPHY web API key:
+
+```bash
+NEXT_PUBLIC_GIPHY_API_KEY=your_key_here
+```
+
+The picker keeps GIFs on GIPHY's CDN rather than uploading them to MILNI storage, and displays the required GIPHY attribution in the search UI.
+
+---
+
 ## 🔔 Notifications
 
 MILNI includes both an in-app notification centre and standard **Web Push**.
