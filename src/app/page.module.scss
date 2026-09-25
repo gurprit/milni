@@ -467,3 +467,7 @@
     display: none;
   }
 }
+
+
+
+.joinCandidates{display:grid;gap:8px;margin:16px 0 8px;border:1px solid var(--milni-border);border-radius:10px;padding:14px;background:var(--milni-paper)}.joinCandidates>small{font-size:9px;letter-spacing:.18em;color:var(--milni-gold)}.joinCandidates>strong{font:400 20px Georgia,serif;margin-bottom:2px}.joinCandidates button{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--milni-border);border-radius:7px;background:white;color:var(--milni-text);padding:12px 13px;cursor:pointer;text-align:left}.joinCandidates button:hover{border-color:var(--milni-gold)}.joinCandidates button span{font-weight:700}.joinCandidates button em{font-size:11px;font-style:normal;color:var(--milni-text-muted)}

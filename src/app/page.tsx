@@ -12,6 +12,8 @@ import {useRouter} from 'next/navigation';
 import styles from './page.module.scss';
 
 type BurstKind = 'start' | 'join';
+type JoinCandidate = {id:string;name:string;group:string};
+const RECENT_WEDDING_KEY='milni:recent-wedding';
 
 type ConfettiParticle = {
   id: number;
@@ -79,8 +81,9 @@ const particleStyle = (particle: ConfettiParticle) =>
 export default function LandingPage() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
   const [code, setCode] = useState('');
+  const [candidates, setCandidates] = useState<JoinCandidate[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [particles, setParticles] = useState<ConfettiParticle[]>([]);
@@ -95,6 +98,13 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
+    try {
+      const remembered = JSON.parse(
+        localStorage.getItem(RECENT_WEDDING_KEY) || 'null',
+      ) as {code?: string} | null;
+      if (remembered?.code) setCode(remembered.code);
+    } catch {}
+
     const openJoin = () => setOpen(true);
     window.addEventListener('milni:join-wedding', openJoin);
 
@@ -197,8 +207,7 @@ export default function LandingPage() {
     </span>
   );
 
-  const join = async (event: FormEvent) => {
-    event.preventDefault();
+  const joinGuest = async (guestId?: string) => {
     setBusy(true);
     setError('');
 
@@ -206,13 +215,28 @@ export default function LandingPage() {
       const response = await fetch('/api/guest-session', {
         method: 'POST',
         headers: {'content-type': 'application/json'},
-        body: JSON.stringify({name, code}),
+        body: JSON.stringify({contact, code, guestId}),
       });
       const result = await response.json();
+
+      if (response.status === 409 && result.requiresGuestSelection) {
+        setCandidates(result.candidates ?? []);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(result.error || 'Could not join wedding.');
       }
+
+      try {
+        localStorage.setItem(
+          RECENT_WEDDING_KEY,
+          JSON.stringify({
+            slug: result.weddingSlug,
+            code: code.trim().toUpperCase(),
+          }),
+        );
+      } catch {}
 
       router.push('/wedding/' + result.weddingSlug);
     } catch (err) {
@@ -220,6 +244,11 @@ export default function LandingPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const join = (event: FormEvent) => {
+    event.preventDefault();
+    void joinGuest();
   };
 
   return (
@@ -308,39 +337,61 @@ export default function LandingPage() {
             <p className={styles.eyebrow}>JOIN A WEDDING</p>
             <h2>Welcome to MILNI</h2>
             <p>
-              Enter your name exactly as it appears on the guest list and the
-              invitation code shared by the couple.
+              Enter the wedding code from your invitation and the email address
+              or mobile number the couple has for you.
             </p>
             <label>
-              Your full name
+              Email or mobile number
               <input
                 autoFocus
-                autoComplete="name"
-                value={name}
-                onChange={event => setName(event.target.value)}
-                placeholder="e.g. Aman Kapoor"
+                value={contact}
+                onChange={event => {
+                  setContact(event.target.value);
+                  setCandidates([]);
+                }}
+                placeholder="you@example.com or 07123 456789"
                 required
               />
             </label>
             <label>
-              Invitation code
+              Wedding code
               <input
                 value={code}
-                onChange={event => setCode(event.target.value.toUpperCase())}
+                onChange={event => {
+                  setCode(event.target.value.toUpperCase());
+                  setCandidates([]);
+                }}
                 placeholder="Wedding code"
                 required
               />
             </label>
+            {candidates.length > 0 && (
+              <div className={styles.joinCandidates}>
+                <small>WE FOUND YOUR FAMILY</small>
+                <strong>Who are you?</strong>
+                {candidates.map(candidate => (
+                  <button
+                    type="button"
+                    key={candidate.id}
+                    onClick={() => void joinGuest(candidate.id)}
+                    disabled={busy}
+                  >
+                    <span>{candidate.name}</span>
+                    {candidate.group && <em>{candidate.group}</em>}
+                  </button>
+                ))}
+              </div>
+            )}
             {error && <div className={styles.joinError}>{error}</div>}
             <button
               className={styles.joinSubmit}
-              disabled={busy || !name.trim() || !code.trim()}
+              disabled={busy || !contact.trim() || !code.trim()}
             >
               {busy ? 'Finding your wedding…' : 'Join wedding →'}
             </button>
             <small>
-              Have a personal invitation link or QR? Open that instead for
-              instant access.
+              We remember the wedding code on this browser, not your email or
+              phone number. Personal invitation links still give instant access.
             </small>
           </form>
         </div>
