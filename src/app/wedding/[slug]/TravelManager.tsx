@@ -26,20 +26,9 @@ function travelTimeMinutes(value:string){
  return match?Number(match[1])*60+Number(match[2]):Number.POSITIVE_INFINITY;
 }
 
-function sortTravelChronologically(items:CoachJourney[],events:TravelEventRef[]){
- const eventById=new Map(events.map(event=>[event.id,event]));
- return items.map((item,index)=>({item,index,event:item.linkedEventId?eventById.get(item.linkedEventId):undefined}))
-  .sort((a,b)=>{
-   const aDate=a.event?.date||'9999-12-31';
-   const bDate=b.event?.date||'9999-12-31';
-   const dateOrder=aDate.localeCompare(bDate);
-   if(dateOrder)return dateOrder;
-   const aEventTime=a.event?travelTimeMinutes(a.event.start):travelTimeMinutes(a.item.time);
-   const bEventTime=b.event?travelTimeMinutes(b.event.start):travelTimeMinutes(b.item.time);
-   if(aEventTime!==bEventTime)return aEventTime-bEventTime;
-   const departureOrder=travelTimeMinutes(a.item.time)-travelTimeMinutes(b.item.time);
-   return departureOrder||a.index-b.index;
-  })
+function sortTravelChronologically(items:CoachJourney[]){
+ return items.map((item,index)=>({item,index}))
+  .sort((a,b)=>travelTimeMinutes(a.item.time)-travelTimeMinutes(b.item.time)||a.index-b.index)
   .map(entry=>entry.item);
 }
 
@@ -67,7 +56,7 @@ export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft
  travelRef.current=localTravel;
 
  const travel:CoachJourney[]=(remoteTravel?.length?remoteTravel:localTravel.map(item=>({...item,trackerGuestIds:[],trackerNames:[],live:idleLive})));
- const orderedTravel=sortTravelChronologically(travel,events);
+ const orderedTravel=sortTravelChronologically(travel);
 
  const releaseTrackingResources=useCallback(()=>{
   if(geoWatchRef.current!=null&&typeof navigator!=='undefined'&&navigator.geolocation){
