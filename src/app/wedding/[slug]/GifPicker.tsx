@@ -21,14 +21,14 @@ type Props={
  compact?:boolean;
 };
 
-type GiphyImage={url?:string};
+type GiphyImage={url?:string;webp?:string};
 type GiphyItem={
  id?:string;
  title?:string;
  images?:{
   downsized_medium?:GiphyImage;
   fixed_width?:GiphyImage;
-  fixed_width_small?:GiphyImage & {webp?:string};
+  fixed_width_small?:GiphyImage;
   original?:GiphyImage;
  };
 };
@@ -67,7 +67,7 @@ export default function GifPicker({selectedUrl='',onSelect,onClear,disabled=fals
     const mapped=(data.data??[]).flatMap((item,index)=>{
      const url=item.images?.downsized_medium?.url||item.images?.fixed_width?.url||item.images?.original?.url||'';
      if(!url)return[];
-     return[{id:item.id||String(index),title:item.title||'GIF',url,previewUrl:item.images?.fixed_width_small?.webp||item.images?.fixed_width?.url||url}];
+     return[{id:item.id||String(index),title:item.title||'GIF',url,previewUrl:item.images?.fixed_width?.webp||item.images?.fixed_width?.url||item.images?.fixed_width_small?.webp||item.images?.fixed_width_small?.url||url}];
     });
     setResults(mapped);
    }catch(searchError){
@@ -88,7 +88,7 @@ export default function GifPicker({selectedUrl='',onSelect,onClear,disabled=fals
    <section className={styles.panel} role="dialog" aria-modal="true" aria-label="Choose a GIF">
     <header><div><span>ADD A GIF</span><h3>Find the right reaction</h3></div><button type="button" className={styles.close} onClick={()=>setOpen(false)} aria-label="Close GIF picker"><X size={20}/></button></header>
     <label className={styles.search}><Search size={18}/><input ref={inputRef} value={query} onChange={event=>setQuery(event.target.value.slice(0,50))} placeholder="Search GIFs by keyword…" autoComplete="off"/></label>
-    <div className={styles.status}>{loading?'Searching…':error||(query.trim()&&!results.length?'No GIFs found.':'Search for a mood, moment or reaction.')}</div>
+    <div className={styles.status}>{loading?'Searching…':error?error:results.length?`${results.length} GIFs`:query.trim()?'No GIFs found.':'Search for a mood, moment or reaction.'}</div>
     {results.length>0&&<div className={styles.grid}>{results.map(gif=><button type="button" key={gif.id} title={gif.title} onClick={()=>choose(gif.url)}><img src={gif.previewUrl} alt={gif.title}/></button>)}</div>}
     <footer>Powered by <strong>GIPHY</strong></footer>
    </section>
