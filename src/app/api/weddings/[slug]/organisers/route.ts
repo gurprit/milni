@@ -55,9 +55,6 @@ export async function PATCH(request:Request,{params}:{params:Promise<{slug:strin
   if(duplicate)return NextResponse.json({ok:false,error:'That email address already belongs to another organiser account.'},{status:409});
 
   await d1Execute('UPDATE organiser_users SET name=?,email=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[name,email,userId]);
-  if(membership.role==='partner-one')await d1Execute('UPDATE weddings SET partner_one=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[name,wedding.id]);
-  if(membership.role==='partner-two')await d1Execute('UPDATE weddings SET partner_two=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[name,wedding.id]);
-
   if(session?.userId===userId){
    const expiresAt=session.expiresAt;
    (await cookies()).set(ORGANISER_COOKIE,encodeOrganiserSession({email,userId,expiresAt}),{
