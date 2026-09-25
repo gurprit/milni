@@ -1,6 +1,6 @@
 import {d1Execute,d1Query} from './d1';
 
-export type OrganiserUser={id:string;email:string;name:string;password_hash:string|null};
+export type OrganiserUser={id:string;email:string;name:string;phone:string|null;password_hash:string|null};
 export type OrganiserMembership={wedding_id:string;user_id:string;role:string;status:string;claim_token:string|null};
 
 export async function ensureOrganiserSchema(){
@@ -22,6 +22,7 @@ export async function ensureOrganiserSchema(){
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (wedding_id,user_id)
  )`);
+ try{await d1Execute('ALTER TABLE organiser_users ADD COLUMN phone TEXT')}catch{}
  try{await d1Execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_wedding_organisers_claim_token ON wedding_organisers(claim_token) WHERE claim_token IS NOT NULL')}catch{}
  try{await d1Execute('CREATE INDEX IF NOT EXISTS idx_wedding_organisers_user ON wedding_organisers(user_id,status)')}catch{}
 }
@@ -86,7 +87,7 @@ export async function verifyOrganiserPassword(password:string,stored:string|null
 
 export async function findOrganiserByEmail(email:string){
  await ensureOrganiserSchema();
- return (await d1Query<OrganiserUser>('SELECT id,email,name,password_hash FROM organiser_users WHERE lower(email)=lower(?) LIMIT 1',[email.trim()]))[0];
+ return (await d1Query<OrganiserUser>('SELECT id,email,name,phone,password_hash FROM organiser_users WHERE lower(email)=lower(?) LIMIT 1',[email.trim()]))[0];
 }
 
 export async function organiserCanAccessWedding(session:{userId?:string}|null|undefined,slug:string){
