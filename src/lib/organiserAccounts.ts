@@ -93,13 +93,20 @@ export async function findOrganiserByEmail(email:string){
 export async function organiserCanAccessWedding(session:{userId?:string}|null|undefined,slug:string){
  if(!session)return false;
  if(!session.userId)return true; // legacy environment organiser remains a superuser during migration.
- await ensureOrganiserSchema();
- const rows=await d1Query<{id:string}>(`SELECT w.id
+ const query=()=>d1Query<{id:string}>(`SELECT w.id
   FROM weddings w
   JOIN wedding_organisers wo ON wo.wedding_id=w.id
   WHERE w.slug=? AND wo.user_id=? AND wo.status='active'
-  LIMIT 1`,[slug,session.userId]);
- return rows.length===1;
+  LIMIT 1`,[slug,session.userId!]);
+ try{
+  return (await query()).length===1;
+ }catch(error){
+  // Schema creation belongs on the exceptional path, not every authenticated
+  // request. This keeps hot API routes comfortably inside Workers CPU limits.
+  if(!(error instanceof Error)||!/no such table|no such column/i.test(error.message))throw error;
+  await ensureOrganiserSchema();
+  return (await query()).length===1;
+ }
 }
 
 export async function listOrganiserWeddings(userId:string){
