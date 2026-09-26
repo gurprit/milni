@@ -32,6 +32,14 @@ function sortTravelChronologically(items:CoachJourney[]){
   .map(entry=>entry.item);
 }
 
+async function readCoachResponse(response:Response){
+ const contentType=response.headers.get('content-type')||'';
+ if(contentType.includes('application/json'))return response.json() as Promise<any>;
+ await response.text().catch(()=> '');
+ const temporary=response.status>=500||response.headers.get('cf-error-type')==='1102';
+ throw Object.assign(new Error(temporary?'Coach tracking is temporarily unavailable. Retrying…':`Coach tracking request failed (${response.status})`),{status:response.status});
+}
+
 export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft;save:(p:Partial<WeddingDraft>)=>void;organiser:boolean}){
  const params=useParams();
  const slug=String(params.slug||'our-wedding');
@@ -48,6 +56,7 @@ export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft
  const [busyJourney,setBusyJourney]=useState<string|null>(null);
  const savingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const idleTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const coachSaveTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const geoWatchRef=useRef<number|null>(null);
  const lastSentRef=useRef(0);
  const wakeLockRef=useRef<any>(null);
@@ -70,7 +79,7 @@ export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft
   setTrackingJourneyId(null);
  },[]);
 
- useEffect(()=>()=>{if(savingTimer.current)clearTimeout(savingTimer.current);if(idleTimer.current)clearTimeout(idleTimer.current);releaseTrackingResources()},[releaseTrackingResources]);
+ useEffect(()=>()=>{if(savingTimer.current)clearTimeout(savingTimer.current);if(idleTimer.current)clearTimeout(idleTimer.current);if(coachSaveTimer.current)clearTimeout(coachSaveTimer.current);releaseTrackingResources()},[releaseTrackingResources]);
 
  const showSaved=()=>{if(savingTimer.current)clearTimeout(savingTimer.current);if(idleTimer.current)clearTimeout(idleTimer.current);setSaveState('saving');savingTimer.current=setTimeout(()=>{setSaveState('saved');idleTimer.current=setTimeout(()=>setSaveState('idle'),2400)},320)};
  const saveWithFeedback=(patch:Partial<WeddingDraft>)=>{save(patch);showSaved()};
@@ -87,7 +96,7 @@ export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft
      trackerGuestIds:item.trackerGuestIds??[],organiserCanTrack:item.organiserCanTrack??false
     }))})
    });
-   const result=await response.json();
+   const result=await readCoachResponse(response);
    if(!response.ok)throw new Error(result.error||'Could not save coach setup');
   }catch(error){setCoachError(error instanceof Error?error.message:'Could not save coach setup')}
  },[slug]);
@@ -95,11 +104,12 @@ export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft
  const loadCoachData=useCallback(async()=>{
   try{
    const response=await fetch(`/api/coaches/${encodeURIComponent(slug)}`,{cache:'no-store'});
-   const result=await response.json();
+   const result=await readCoachResponse(response);
    if(!response.ok){
     if(response.status!==401)setCoachError(result.error||'Could not load coach tracking');
     return;
    }
+   setCoachError('');
    setTrackerGuests(result.guests??[]);
    const journeys:CoachJourney[]=result.journeys??[];
    if(journeys.length){
@@ -113,19 +123,18 @@ export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft
   }catch(error){setCoachError(error instanceof Error?error.message:'Could not load coach tracking')}
  },[organiser,saveCoachSetup,slug]);
 
- useEffect(()=>{void loadCoachData();const timer=window.setInterval(()=>void loadCoachData(),5000);return()=>window.clearInterval(timer)},[loadCoachData]);
+ useEffect(()=>{const poll=()=>{if(document.visibilityState==='visible')void loadCoachData()};poll();const timer=window.setInterval(poll,10000);document.addEventListener('visibilitychange',poll);return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',poll)}},[loadCoachData]);
 
  const persistTravel=(nextItems:TravelItem[])=>{
   saveWithFeedback({travel:nextItems});
-  setRemoteTravel(previous=>{
-   const source=previous??travel;
-   const next=nextItems.map(item=>{
-    const existing=source.find(candidate=>candidate.id===item.id);
-    return {...item,trackerGuestIds:existing?.trackerGuestIds??[],trackerNames:existing?.trackerNames??[],organiserCanTrack:existing?.organiserCanTrack??false,canTrack:existing?.canTrack??false,isCurrentTracker:existing?.isCurrentTracker??false,live:existing?.live??idleLive};
-   });
-   void saveCoachSetup(next);
-   return next;
+  const source=remoteTravel??travel;
+  const next=nextItems.map(item=>{
+   const existing=source.find(candidate=>candidate.id===item.id);
+   return {...item,trackerGuestIds:existing?.trackerGuestIds??[],trackerNames:existing?.trackerNames??[],organiserCanTrack:existing?.organiserCanTrack??false,canTrack:existing?.canTrack??false,isCurrentTracker:existing?.isCurrentTracker??false,live:existing?.live??idleLive};
   });
+  setRemoteTravel(next);
+  if(coachSaveTimer.current)clearTimeout(coachSaveTimer.current);
+  coachSaveTimer.current=setTimeout(()=>void saveCoachSetup(next),600);
  };
  const updateTravel=useCallback((id:string,patch:Partial<TravelItem>)=>persistTravel(travel.map(item=>item.id===id?{...item,...patch}:item)),[travel]);
  const addTravel=()=>persistTravel([...travel,{id:`travel-${Date.now()}`,name:'New journey',time:'10:00',place:'',destination:'',note:'',linkedEventId:''}]);
@@ -156,7 +165,7 @@ export default function TravelManager({draft,save,organiser}:{draft:WeddingDraft
    method:'PATCH',headers:{'content-type':'application/json'},
    body:JSON.stringify({journeyId,action,lat:position?.coords.latitude,lng:position?.coords.longitude,accuracy:position?.coords.accuracy})
   });
-  const result=await response.json();
+  const result=await readCoachResponse(response);
   if(!response.ok)throw Object.assign(new Error(result.error||'Could not update coach tracking'),{status:response.status});
   return result;
  },[slug]);
