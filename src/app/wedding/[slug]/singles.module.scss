@@ -21,8 +21,8 @@
 .card{position:relative;touch-action:pan-y;will-change:transform;transition:transform .18s ease,box-shadow .18s ease;user-select:none}
 .swipeLeft{animation:singleSwipeLeft .34s cubic-bezier(.4,0,.2,1) forwards}
 .swipeRight{animation:singleSwipeRight .34s cubic-bezier(.4,0,.2,1) forwards}
-@keyframes singleSwipeLeft{0%{transform:translate3d(0,0,0) rotate(0);opacity:1}100%{transform:translate3d(-115vw,18px,0) rotate(-18deg);opacity:.25}}
-@keyframes singleSwipeRight{0%{transform:translate3d(0,0,0) rotate(0);opacity:1}100%{transform:translate3d(115vw,18px,0) rotate(18deg);opacity:.25}}
+@keyframes singleSwipeLeft{0%{transform:translate3d(var(--swipe-start,0),0,0) rotate(var(--swipe-start-rot,0deg));opacity:1}100%{transform:translate3d(-115vw,18px,0) rotate(-18deg);opacity:.25}}
+@keyframes singleSwipeRight{0%{transform:translate3d(var(--swipe-start,0),0,0) rotate(var(--swipe-start-rot,0deg));opacity:1}100%{transform:translate3d(115vw,18px,0) rotate(18deg);opacity:.25}}
 .swipeStamp{position:absolute;top:24px;z-index:8;display:flex;align-items:center;gap:7px;border:2px solid currentColor;border-radius:9px;padding:8px 11px;background:rgba(255,255,255,.9);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);font:800 11px Arial,sans-serif;letter-spacing:1.4px;pointer-events:none;transform:rotate(-8deg)}
 .swipeStampPass{right:22px;color:#966258;transform:rotate(8deg)}
 .swipeStampLike{left:22px;color:#23705b}
