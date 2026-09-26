@@ -68,6 +68,17 @@ function validCoordinate(value:unknown,min:number,max:number){
  const number=Number(value);
  return Number.isFinite(number)&&number>=min&&number<=max?number:null;
 }
+function missingCoachSchema(error:unknown){
+ return error instanceof Error&&/no such table|no such column/i.test(error.message);
+}
+async function loadCoachRows(id:string,organiser:boolean){
+ return Promise.all([
+  d1Query<JourneyRow>('SELECT id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,organiser_can_track,sort_order FROM coach_journeys WHERE wedding_id=? ORDER BY sort_order',[id]),
+  d1Query<TrackerRow>('SELECT ct.journey_id,ct.guest_id,g.name FROM coach_trackers ct LEFT JOIN guests g ON g.id=ct.guest_id AND g.wedding_id=ct.wedding_id WHERE ct.wedding_id=?',[id]),
+  d1Query<LiveRow>('SELECT journey_id,status,lat,lng,accuracy,tracker_guest_id,started_at,updated_at,arrived_at FROM coach_live_state WHERE wedding_id=?',[id]),
+  organiser?d1Query<{id:string;name:string;guest_group:string|null}>('SELECT id,name,guest_group FROM guests WHERE wedding_id=? ORDER BY name',[id]):Promise.resolve([])
+ ]);
+}
 
 export async function GET(_request:Request,{params}:{params:Promise<{slug:string}>}){
  try{
@@ -79,13 +90,17 @@ export async function GET(_request:Request,{params}:{params:Promise<{slug:string
   const guestAllowed=!!guest&&guest.weddingId===id&&guest.weddingSlug===slug;
   if(!organiser&&!guestAllowed)return NextResponse.json({ok:false,error:'Join this wedding to view coach tracking.'},{status:401});
 
-  await ensureTables();
-  const [journeys,trackers,live,guests]=await Promise.all([
-   d1Query<JourneyRow>('SELECT id,name,time,place,destination,note,linked_event_id,pickup_json,destination_json,organiser_can_track,sort_order FROM coach_journeys WHERE wedding_id=? ORDER BY sort_order',[id]),
-   d1Query<TrackerRow>('SELECT ct.journey_id,ct.guest_id,g.name FROM coach_trackers ct LEFT JOIN guests g ON g.id=ct.guest_id AND g.wedding_id=ct.wedding_id WHERE ct.wedding_id=?',[id]),
-   d1Query<LiveRow>('SELECT journey_id,status,lat,lng,accuracy,tracker_guest_id,started_at,updated_at,arrived_at FROM coach_live_state WHERE wedding_id=?',[id]),
-   organiser?d1Query<{id:string;name:string;guest_group:string|null}>('SELECT id,name,guest_group FROM guests WHERE wedding_id=? ORDER BY name',[id]):Promise.resolve([])
-  ]);
+  let rows;
+  try{
+   rows=await loadCoachRows(id,organiser);
+  }catch(error){
+   // The schema is global and already exists in normal operation. Only run the
+   // DDL bootstrap if this is genuinely a fresh database.
+   if(!missingCoachSchema(error))throw error;
+   await ensureTables();
+   rows=await loadCoachRows(id,organiser);
+  }
+  const [journeys,trackers,live,guests]=rows;
 
   const trackersByJourney=new Map<string,TrackerRow[]>();
   for(const tracker of trackers){
@@ -146,8 +161,6 @@ export async function PUT(request:Request,{params}:{params:Promise<{slug:string}
   if(!id)return NextResponse.json({ok:false,error:'Wedding not found'},{status:404});
   const body=await request.json() as {journeys?:JourneyInput[]};
   const journeys=Array.isArray(body.journeys)?body.journeys.slice(0,50):[];
-  await ensureTables();
-
   const incomingIds=journeys.map(item=>String(item.id||'')).filter(Boolean);
   const existing=await d1Query<{id:string}>('SELECT id FROM coach_journeys WHERE wedding_id=?',[id]);
   for(const row of existing){
@@ -187,8 +200,6 @@ export async function PATCH(request:Request,{params}:{params:Promise<{slug:strin
   const organiser=await organiserCanAccessWedding(organiserSession,slug);
   const guestAllowed=!!guest&&guest.weddingId===id&&guest.weddingSlug===slug;
   if(!organiser&&!guestAllowed)return NextResponse.json({ok:false,error:'Join this wedding to share coach location.'},{status:401});
-  await ensureTables();
-
   const body=await request.json() as {journeyId?:string;action?:string;lat?:number;lng?:number;accuracy?:number};
   const journeyId=String(body.journeyId||'');
   const action=String(body.action||'');
